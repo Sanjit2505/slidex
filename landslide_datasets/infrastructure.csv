@@ -1,0 +1,1001 @@
+infra_id,state_id,district_id,infra_type,infra_code,lat,lon,construction_year,condition,capacity,construction_type,landslide_exposure,distance_to_nearest_slope_km
+1,50,6,Helipad,INF00001,23.84131,92.27326,1902,Poor,4631,Seismically Isolated,Medium,1.72
+2,43,5,Water Treatment,INF00002,29.6752,97.39556,1980,Good,1534,Steel Frame,Medium,0.34
+3,41,5,Water Treatment,INF00003,22.9744,94.31966,1930,Poor,4278,Reinforced Concrete,Low,6.52
+4,3,1,Helipad,INF00004,27.50074,98.84575,1904,Critical,1485,Steel Frame,Medium,9.48
+5,7,1,Power Station,INF00005,26.63166,92.1988,1985,Fair,3588,Timber,High,4.01
+6,46,5,Telecom Tower,INF00006,23.28645,97.82288,1945,Poor,2479,Steel Frame,Low,3.14
+7,4,1,Telecom Tower,INF00007,26.80325,90.52806,1963,Fair,767,Steel Frame,High,4.2
+8,47,6,Power Station,INF00008,29.56711,99.44633,1937,Critical,1232,Timber,Negligible,9.52
+9,45,5,School,INF00009,28.49904,94.89263,1967,Poor,1883,Reinforced Concrete,Medium,8.98
+10,55,7,Hospital,INF00010,29.26893,94.42184,1947,Fair,2611,Timber,Medium,8.97
+11,48,6,Disaster Relief Camp,INF00011,26.74071,94.72902,2014,Critical,2513,Seismically Isolated,High,1.03
+12,43,5,Water Treatment,INF00012,29.64047,97.69938,2010,Good,1518,Timber,Negligible,6.02
+13,61,8,Hospital,INF00013,26.5529,90.04048,1933,Good,171,Masonry,Low,0.65
+14,27,3,Power Station,INF00014,25.05037,90.44855,1906,Critical,3276,Timber,Medium,2.19
+15,7,1,School,INF00015,26.06082,92.32152,1972,Good,712,Steel Frame,Negligible,3.15
+16,11,1,Telecom Tower,INF00016,22.96435,91.15194,2021,Fair,4844,Reinforced Concrete,Low,0.68
+17,18,2,Disaster Relief Camp,INF00017,29.02718,98.58367,1939,Good,3584,Timber,Low,3.42
+18,32,3,Helipad,INF00018,25.7072,95.55278,1988,Critical,2090,Seismically Isolated,Low,2.16
+19,54,6,Helipad,INF00019,29.35192,91.71366,1911,Poor,4710,Masonry,High,4.43
+20,10,1,Water Treatment,INF00020,23.80197,97.70637,1957,Good,430,Timber,Negligible,9.52
+21,6,1,Hospital,INF00021,26.29933,97.10295,1954,Poor,2661,Steel Frame,High,2.22
+22,25,3,Telecom Tower,INF00022,26.18169,97.13154,1992,Good,2549,Masonry,Low,2.31
+23,5,1,Water Treatment,INF00023,23.53915,95.08908,1940,Poor,4534,Timber,Negligible,4.54
+24,43,5,Hospital,INF00024,29.62325,97.4837,2003,Critical,1698,Steel Frame,Medium,2.02
+25,60,8,Helipad,INF00025,24.70161,95.69813,2009,Fair,4023,Reinforced Concrete,High,3.43
+26,48,6,Disaster Relief Camp,INF00026,26.88288,94.79469,2014,Poor,4242,Masonry,Medium,6.3
+27,1,1,School,INF00027,27.14109,90.36585,1941,Fair,3889,Masonry,Negligible,7.41
+28,9,1,Government Office,INF00028,27.73093,93.26072,1945,Critical,690,Steel Frame,Negligible,1.33
+29,42,5,Helipad,INF00029,22.02022,96.95121,1966,Good,1021,Steel Frame,Medium,2.57
+30,25,3,Hospital,INF00030,26.58744,96.94078,2006,Good,2501,Seismically Isolated,High,5.22
+31,5,1,Government Office,INF00031,23.9192,94.78952,1939,Critical,1589,Reinforced Concrete,Medium,2.72
+32,50,6,Hospital,INF00032,23.96273,92.13364,1978,Poor,4380,Steel Frame,Low,7.31
+33,44,5,Hospital,INF00033,29.34905,98.47341,1943,Critical,1907,Steel Frame,Medium,9.32
+34,45,5,School,INF00034,28.78609,95.11709,1998,Fair,4466,Timber,Negligible,0.6
+35,36,4,School,INF00035,25.38245,90.85844,1948,Poor,3818,Masonry,Medium,7.06
+36,24,3,Telecom Tower,INF00036,24.35554,99.40219,1974,Good,1026,Reinforced Concrete,Medium,1.71
+37,60,8,Disaster Relief Camp,INF00037,24.55427,96.11634,2007,Poor,4340,Seismically Isolated,Medium,3.83
+38,58,7,Police Station,INF00038,27.18836,94.51473,2017,Good,4372,Reinforced Concrete,High,4.56
+39,62,8,Hospital,INF00039,27.17259,92.30641,1956,Good,3111,Seismically Isolated,Medium,3.54
+40,57,7,Helipad,INF00040,23.90902,92.90073,2011,Critical,4546,Masonry,Medium,9.36
+41,39,4,Power Station,INF00041,27.48827,90.86579,1970,Good,1371,Steel Frame,Negligible,8.01
+42,26,3,Telecom Tower,INF00042,23.81273,90.23632,2005,Fair,1314,Masonry,High,9.93
+43,48,6,Police Station,INF00043,26.6649,94.93059,2010,Fair,1885,Masonry,Negligible,8.17
+44,47,6,School,INF00044,29.54318,99.21739,1921,Good,1453,Masonry,Low,9.93
+45,46,5,Power Station,INF00045,22.99152,97.60194,1933,Critical,3640,Timber,Low,0.02
+46,6,1,Police Station,INF00046,26.75274,97.26894,1991,Good,1019,Seismically Isolated,High,0.63
+47,9,1,Hospital,INF00047,27.42964,93.18149,1908,Poor,2625,Timber,Medium,2.88
+48,24,3,Police Station,INF00048,24.0536,99.12553,1940,Critical,4867,Steel Frame,Medium,4.26
+49,36,4,Helipad,INF00049,25.11739,90.87019,1960,Critical,303,Masonry,High,1.41
+50,43,5,Helipad,INF00050,30.06653,97.66872,1939,Critical,4373,Timber,Medium,7.05
+51,45,5,Water Treatment,INF00051,29.00826,95.08199,1945,Poor,1445,Masonry,Negligible,2.34
+52,4,1,Water Treatment,INF00052,26.71409,90.34638,1997,Fair,4679,Seismically Isolated,Low,5.7
+53,26,3,Disaster Relief Camp,INF00053,23.82858,90.29526,2018,Critical,795,Seismically Isolated,Negligible,4.62
+54,13,2,Government Office,INF00054,26.08302,99.44873,1979,Fair,1205,Steel Frame,Medium,7.12
+55,42,5,Helipad,INF00055,22.16732,97.23044,2006,Critical,1307,Timber,Low,0.45
+56,9,1,Helipad,INF00056,27.42004,93.12708,1905,Fair,4688,Timber,Medium,6.07
+57,6,1,School,INF00057,26.58422,97.41662,1940,Good,2845,Masonry,High,7.11
+58,31,3,Water Treatment,INF00058,28.13428,95.18366,2003,Poor,2639,Steel Frame,High,7.77
+59,50,6,School,INF00059,24.14494,92.33301,1916,Critical,4090,Steel Frame,Medium,5.97
+60,14,2,Telecom Tower,INF00060,22.88207,92.7555,1997,Critical,498,Seismically Isolated,High,4.89
+61,18,2,Helipad,INF00061,29.0379,98.41344,1909,Critical,2185,Seismically Isolated,Negligible,7.04
+62,16,2,School,INF00062,23.83176,90.96267,1903,Critical,1155,Seismically Isolated,Medium,4.75
+63,46,5,Disaster Relief Camp,INF00063,23.42361,97.50046,1944,Fair,574,Reinforced Concrete,Negligible,1.67
+64,17,2,Power Station,INF00064,23.94047,93.03946,1904,Poor,2347,Steel Frame,Negligible,1.77
+65,25,3,Government Office,INF00065,26.45466,97.12825,1988,Poor,3395,Reinforced Concrete,Negligible,8.32
+66,43,5,Government Office,INF00066,29.7337,97.46975,1914,Critical,2135,Reinforced Concrete,Negligible,1.69
+67,26,3,Water Treatment,INF00067,24.06572,90.41984,1957,Critical,3012,Steel Frame,Low,9.25
+68,44,5,Telecom Tower,INF00068,29.60047,98.49025,1996,Critical,928,Timber,Medium,7.27
+69,19,2,School,INF00069,23.92581,96.56052,1911,Poor,1796,Masonry,Negligible,2.28
+70,11,1,Power Station,INF00070,22.85146,91.15317,2013,Fair,4181,Steel Frame,High,3.58
+71,5,1,Power Station,INF00071,23.68177,94.87116,1984,Fair,4392,Seismically Isolated,High,4.65
+72,43,5,Government Office,INF00072,29.74153,97.54061,1901,Critical,2689,Seismically Isolated,High,2.54
+73,12,1,Police Station,INF00073,27.08034,97.85801,1957,Good,824,Steel Frame,Negligible,1.72
+74,31,3,Hospital,INF00074,28.17792,95.12062,1955,Fair,1324,Steel Frame,Negligible,7.59
+75,48,6,Hospital,INF00075,26.86442,94.83075,2020,Fair,2780,Seismically Isolated,Negligible,4.35
+76,26,3,Power Station,INF00076,23.76562,90.45084,1921,Critical,3424,Masonry,High,4.18
+77,37,4,School,INF00077,26.51267,94.45558,1925,Critical,1206,Timber,Negligible,9.1
+78,10,1,Helipad,INF00078,23.62667,97.86833,2010,Good,3143,Masonry,Low,8.79
+79,32,3,Water Treatment,INF00079,25.21319,95.87629,1981,Critical,4295,Timber,Negligible,2.39
+80,13,2,School,INF00080,26.56564,99.91032,1979,Fair,603,Seismically Isolated,Negligible,6.51
+81,6,1,School,INF00081,26.31898,97.35142,1981,Good,1852,Timber,Negligible,4.86
+82,41,5,Telecom Tower,INF00082,23.00479,94.29289,1966,Poor,4735,Masonry,Low,9.09
+83,32,3,School,INF00083,25.19433,96.13463,1935,Poor,704,Masonry,High,7.16
+84,54,6,Power Station,INF00084,29.87023,91.36739,1931,Poor,3234,Steel Frame,High,3.46
+85,22,2,Police Station,INF00085,22.33837,96.56786,1975,Critical,1215,Masonry,Medium,2.55
+86,44,5,Police Station,INF00086,29.24037,98.84599,1901,Good,4766,Timber,Negligible,1.81
+87,6,1,Police Station,INF00087,26.42392,97.32626,2003,Fair,2002,Steel Frame,Negligible,7.52
+88,40,5,School,INF00088,27.81192,97.63734,1957,Critical,910,Seismically Isolated,Negligible,4.17
+89,32,3,Government Office,INF00089,25.19208,95.58003,2013,Good,532,Seismically Isolated,Low,6.03
+90,52,6,School,INF00090,28.59238,99.57188,1997,Good,763,Steel Frame,High,7.17
+91,24,3,Government Office,INF00091,24.4106,98.97416,1981,Fair,3121,Seismically Isolated,Negligible,9.47
+92,56,7,Water Treatment,INF00092,29.20155,97.63611,1954,Critical,3332,Steel Frame,Low,1.63
+93,18,2,Hospital,INF00093,28.85271,98.61753,1935,Poor,4400,Masonry,Low,0.11
+94,13,2,Police Station,INF00094,26.09113,99.79603,1906,Critical,1057,Reinforced Concrete,High,8.54
+95,16,2,Disaster Relief Camp,INF00095,23.73376,90.5615,2009,Fair,4393,Masonry,Medium,1.57
+96,7,1,Hospital,INF00096,26.11187,92.09018,1917,Critical,851,Timber,Low,8.93
+97,26,3,Hospital,INF00097,23.97889,90.61021,1959,Good,4760,Masonry,High,8.62
+98,30,3,Water Treatment,INF00098,25.74483,92.57222,2012,Fair,902,Steel Frame,Medium,3.0
+99,49,6,Power Station,INF00099,29.62093,98.58717,1947,Critical,1064,Steel Frame,Low,5.14
+100,28,3,Government Office,INF00100,29.03104,93.22865,1974,Fair,607,Reinforced Concrete,High,8.64
+101,7,1,Police Station,INF00101,26.20273,92.05537,2018,Critical,4447,Timber,Low,1.8
+102,29,3,Telecom Tower,INF00102,25.84548,98.83044,1985,Fair,2961,Steel Frame,High,3.33
+103,41,5,Police Station,INF00103,22.85504,94.53294,1957,Good,4574,Seismically Isolated,Low,7.05
+104,23,3,School,INF00104,28.09071,91.77519,1992,Critical,3591,Steel Frame,Medium,0.77
+105,58,7,Water Treatment,INF00105,27.19452,94.28773,1980,Good,3176,Seismically Isolated,Medium,4.04
+106,47,6,Police Station,INF00106,29.68984,99.36988,1951,Fair,674,Reinforced Concrete,Medium,0.16
+107,62,8,Power Station,INF00107,26.80493,92.26142,1931,Good,648,Masonry,Medium,0.22
+108,32,3,Disaster Relief Camp,INF00108,25.62901,95.74458,1993,Fair,973,Seismically Isolated,Medium,4.58
+109,8,1,Power Station,INF00109,23.99629,98.84021,1910,Critical,2788,Seismically Isolated,Negligible,5.73
+110,20,2,School,INF00110,23.22245,93.41892,2019,Fair,4511,Reinforced Concrete,High,9.3
+111,8,1,Telecom Tower,INF00111,24.13178,98.45776,2005,Critical,1833,Seismically Isolated,Low,9.34
+112,47,6,Disaster Relief Camp,INF00112,29.35189,99.03586,1936,Poor,4141,Seismically Isolated,Low,7.79
+113,25,3,Police Station,INF00113,26.54673,96.97851,1920,Fair,4508,Reinforced Concrete,Medium,5.48
+114,51,6,Government Office,INF00114,29.6613,90.8727,1992,Fair,2284,Seismically Isolated,High,9.09
+115,9,1,Telecom Tower,INF00115,27.867,93.30294,1917,Good,3996,Seismically Isolated,Negligible,0.91
+116,19,2,Hospital,INF00116,24.42134,96.17967,2020,Good,248,Masonry,Low,7.06
+117,61,8,Water Treatment,INF00117,26.9904,90.03282,2012,Critical,4261,Steel Frame,Medium,8.33
+118,35,4,Hospital,INF00118,22.94434,91.36226,1959,Critical,3107,Seismically Isolated,Medium,7.55
+119,2,1,Government Office,INF00119,23.86082,91.29627,1937,Critical,3239,Masonry,High,4.25
+120,13,2,Disaster Relief Camp,INF00120,26.2499,99.85477,1921,Critical,3068,Reinforced Concrete,Negligible,2.74
+121,51,6,School,INF00121,29.44717,90.79099,1908,Poor,1703,Masonry,Medium,6.08
+122,11,1,Power Station,INF00122,22.97701,90.71414,2003,Poor,2820,Masonry,High,3.36
+123,15,2,Telecom Tower,INF00123,27.08073,98.70188,1979,Critical,3319,Steel Frame,Medium,2.89
+124,41,5,Helipad,INF00124,22.63376,94.55766,2007,Poor,4940,Steel Frame,Medium,4.3
+125,55,7,Disaster Relief Camp,INF00125,28.85857,94.04373,1974,Critical,2771,Timber,Medium,8.6
+126,11,1,Water Treatment,INF00126,22.94137,90.73836,1966,Poor,4520,Timber,Low,6.02
+127,17,2,Power Station,INF00127,23.76752,92.93428,1938,Good,4022,Masonry,High,3.39
+128,32,3,Telecom Tower,INF00128,25.53827,95.67544,2005,Good,1018,Reinforced Concrete,High,8.85
+129,31,3,Hospital,INF00129,27.71615,95.62027,1925,Good,541,Steel Frame,Low,4.58
+130,23,3,Helipad,INF00130,27.6183,91.87022,1987,Critical,3314,Masonry,High,7.16
+131,49,6,Police Station,INF00131,29.57819,98.93186,1962,Poor,3997,Steel Frame,High,7.73
+132,28,3,Police Station,INF00132,29.2457,93.18697,1970,Poor,3061,Timber,Negligible,2.88
+133,58,7,Disaster Relief Camp,INF00133,27.43272,94.21615,2011,Fair,3947,Reinforced Concrete,High,0.02
+134,4,1,Power Station,INF00134,26.99869,90.16571,1943,Critical,3029,Reinforced Concrete,Negligible,1.49
+135,22,2,Helipad,INF00135,22.42659,96.40015,2007,Fair,951,Seismically Isolated,Medium,9.74
+136,27,3,Hospital,INF00136,25.09451,90.51344,2011,Fair,2573,Timber,Low,7.51
+137,18,2,School,INF00137,28.86647,98.36996,1913,Good,2325,Reinforced Concrete,Negligible,5.56
+138,38,4,Police Station,INF00138,29.74435,98.68023,1949,Critical,4313,Timber,High,6.92
+139,32,3,Helipad,INF00139,25.47609,96.10955,1966,Critical,3280,Masonry,High,3.0
+140,18,2,Disaster Relief Camp,INF00140,29.01485,98.43184,1930,Critical,3761,Steel Frame,Negligible,4.74
+141,39,4,Water Treatment,INF00141,27.30208,91.10512,1978,Critical,2189,Masonry,Low,4.87
+142,57,7,Police Station,INF00142,23.38145,92.90578,2005,Good,1873,Seismically Isolated,Medium,1.85
+143,40,5,Telecom Tower,INF00143,27.87124,97.66306,1980,Fair,320,Reinforced Concrete,Negligible,9.19
+144,41,5,Disaster Relief Camp,INF00144,22.94832,94.45293,1938,Poor,3272,Masonry,High,8.11
+145,42,5,Telecom Tower,INF00145,21.81899,97.37408,1993,Poor,1407,Reinforced Concrete,High,5.24
+146,32,3,Helipad,INF00146,25.53758,95.95042,1931,Fair,1025,Seismically Isolated,High,0.33
+147,54,6,Disaster Relief Camp,INF00147,29.51183,91.63994,2017,Good,4941,Masonry,Medium,0.2
+148,61,8,Government Office,INF00148,26.95885,89.89242,1906,Good,4703,Timber,High,6.51
+149,19,2,Hospital,INF00149,24.27749,96.35271,1999,Poor,1820,Reinforced Concrete,Medium,5.71
+150,32,3,Disaster Relief Camp,INF00150,25.66002,95.84955,1987,Critical,3067,Masonry,Low,4.42
+151,60,8,School,INF00151,24.59166,95.59439,1910,Good,4963,Steel Frame,Low,9.9
+152,61,8,Police Station,INF00152,26.79315,89.95032,1976,Fair,2051,Masonry,Low,2.9
+153,42,5,Water Treatment,INF00153,22.28683,97.18545,1959,Good,2822,Steel Frame,Low,7.56
+154,47,6,Telecom Tower,INF00154,29.56273,98.94044,1961,Fair,3493,Reinforced Concrete,Low,3.9
+155,34,4,Police Station,INF00155,26.02555,97.78159,1900,Poor,4972,Timber,Negligible,5.27
+156,29,3,Power Station,INF00156,26.12181,98.75794,1929,Critical,2468,Reinforced Concrete,High,8.69
+157,10,1,Telecom Tower,INF00157,23.53991,97.68619,1952,Poor,2384,Reinforced Concrete,High,8.68
+158,45,5,Hospital,INF00158,28.4828,94.9653,1943,Good,1484,Steel Frame,High,3.23
+159,56,7,Disaster Relief Camp,INF00159,29.41947,97.65615,1997,Fair,3776,Masonry,Negligible,6.66
+160,27,3,Water Treatment,INF00160,25.05596,90.8972,1913,Good,990,Seismically Isolated,High,4.83
+161,35,4,School,INF00161,23.09703,91.31512,1971,Poor,121,Reinforced Concrete,High,9.52
+162,62,8,Government Office,INF00162,27.32716,92.4363,1928,Fair,1023,Reinforced Concrete,Low,1.5
+163,58,7,Government Office,INF00163,27.30342,94.65804,1919,Fair,1885,Seismically Isolated,Negligible,3.22
+164,28,3,Helipad,INF00164,29.27504,93.05478,2006,Poor,2281,Masonry,Low,3.88
+165,60,8,Police Station,INF00165,24.51458,96.04806,1947,Poor,2849,Seismically Isolated,Medium,1.33
+166,26,3,Police Station,INF00166,24.08828,90.37887,2009,Critical,3397,Reinforced Concrete,High,9.95
+167,46,5,Water Treatment,INF00167,23.18247,97.6852,2015,Good,3066,Seismically Isolated,Low,1.78
+168,28,3,School,INF00168,28.91003,93.12141,2001,Critical,2022,Masonry,High,7.26
+169,47,6,Hospital,INF00169,29.4772,98.92538,1947,Fair,1948,Timber,Negligible,0.71
+170,20,2,Power Station,INF00170,23.41384,93.4691,1904,Poor,2395,Steel Frame,Low,0.82
+171,51,6,Telecom Tower,INF00171,29.81292,90.83653,1963,Fair,1122,Reinforced Concrete,Low,3.73
+172,11,1,School,INF00172,22.93909,91.01264,1914,Critical,1789,Reinforced Concrete,Low,9.6
+173,47,6,Hospital,INF00173,29.63347,98.92985,1923,Poor,4096,Steel Frame,Low,0.1
+174,54,6,Telecom Tower,INF00174,29.85812,91.57857,2003,Fair,2387,Masonry,Medium,6.35
+175,30,3,Water Treatment,INF00175,25.42802,92.93212,1908,Critical,1720,Timber,High,4.4
+176,17,2,Water Treatment,INF00176,23.87732,92.80531,1912,Critical,2110,Masonry,Low,8.4
+177,40,5,Water Treatment,INF00177,27.84893,97.59284,1971,Good,3898,Steel Frame,Negligible,4.7
+178,17,2,Police Station,INF00178,23.65588,92.95589,1970,Good,934,Timber,Medium,6.25
+179,5,1,Government Office,INF00179,23.96873,95.25937,2011,Fair,136,Timber,High,2.48
+180,38,4,Disaster Relief Camp,INF00180,29.59303,98.8259,1964,Good,3056,Reinforced Concrete,High,9.1
+181,31,3,Hospital,INF00181,27.98416,95.34162,2001,Good,237,Seismically Isolated,Negligible,8.94
+182,26,3,Disaster Relief Camp,INF00182,24.01909,90.34279,1911,Good,1752,Reinforced Concrete,Negligible,0.2
+183,37,4,Water Treatment,INF00183,26.97233,94.43876,1902,Good,2679,Reinforced Concrete,High,9.68
+184,30,3,Hospital,INF00184,25.43922,92.51894,2000,Fair,4773,Timber,Medium,8.08
+185,14,2,Power Station,INF00185,22.62514,92.8311,2015,Critical,3709,Seismically Isolated,Negligible,8.18
+186,27,3,Disaster Relief Camp,INF00186,25.06307,90.53593,1965,Fair,3474,Steel Frame,Medium,5.22
+187,51,6,Government Office,INF00187,29.78309,91.02006,1979,Fair,3874,Seismically Isolated,Negligible,4.96
+188,37,4,Police Station,INF00188,26.53882,94.49557,1957,Poor,4670,Timber,Negligible,0.12
+189,51,6,Telecom Tower,INF00189,29.69808,90.80633,1902,Good,456,Steel Frame,Low,4.75
+190,40,5,Police Station,INF00190,28.14274,97.62559,1977,Critical,170,Reinforced Concrete,Negligible,2.85
+191,58,7,Telecom Tower,INF00191,27.26013,94.26462,1919,Good,1168,Timber,Negligible,7.82
+192,22,2,Disaster Relief Camp,INF00192,22.59601,96.30885,2020,Good,4152,Seismically Isolated,Negligible,9.05
+193,17,2,School,INF00193,23.99795,92.93272,1975,Poor,743,Timber,Negligible,7.2
+194,16,2,Water Treatment,INF00194,23.51382,90.94062,1921,Good,2803,Steel Frame,Medium,8.08
+195,45,5,Helipad,INF00195,28.83623,94.83184,1937,Fair,4300,Seismically Isolated,Medium,3.04
+196,49,6,School,INF00196,29.37135,98.81897,1909,Good,1778,Reinforced Concrete,Low,8.71
+197,11,1,Disaster Relief Camp,INF00197,23.0127,90.87957,1939,Good,1517,Seismically Isolated,Medium,8.18
+198,53,6,Hospital,INF00198,28.11482,91.49416,1908,Poor,3864,Timber,High,0.39
+199,7,1,Government Office,INF00199,26.45757,92.49695,1931,Fair,1896,Reinforced Concrete,Medium,1.56
+200,54,6,Power Station,INF00200,29.50331,91.42332,1975,Poor,2036,Masonry,High,5.32
+201,43,5,Telecom Tower,INF00201,30.01894,97.75986,1982,Fair,2823,Timber,Medium,1.75
+202,22,2,Hospital,INF00202,22.57791,96.11911,1905,Critical,3228,Seismically Isolated,Medium,4.48
+203,10,1,Power Station,INF00203,23.68837,97.38383,2009,Critical,3068,Seismically Isolated,Medium,2.81
+204,33,4,Disaster Relief Camp,INF00204,23.88256,99.89734,1953,Good,2906,Masonry,Low,8.79
+205,28,3,Telecom Tower,INF00205,28.88652,93.05765,1905,Good,2459,Steel Frame,Medium,7.57
+206,2,1,Helipad,INF00206,24.18608,91.29893,1909,Poor,1882,Reinforced Concrete,High,0.69
+207,16,2,Hospital,INF00207,23.34205,90.62852,1978,Poor,217,Timber,High,7.17
+208,16,2,Disaster Relief Camp,INF00208,23.63891,90.87993,1974,Poor,3343,Timber,Low,9.41
+209,11,1,Water Treatment,INF00209,22.77428,91.12867,1989,Fair,2980,Seismically Isolated,Negligible,8.94
+210,20,2,Police Station,INF00210,23.58057,93.43061,1916,Fair,1755,Seismically Isolated,Medium,4.38
+211,13,2,Helipad,INF00211,26.49231,99.74614,1931,Fair,4974,Steel Frame,High,0.24
+212,62,8,Government Office,INF00212,27.04136,92.5082,1980,Critical,4389,Timber,Low,6.06
+213,16,2,Helipad,INF00213,23.45062,90.95309,1937,Poor,624,Steel Frame,Negligible,6.75
+214,58,7,Government Office,INF00214,27.36223,94.6297,1990,Critical,3586,Timber,Negligible,6.04
+215,8,1,Power Station,INF00215,24.11765,98.409,2001,Fair,774,Timber,Negligible,4.26
+216,51,6,Disaster Relief Camp,INF00216,29.56658,90.60923,1917,Poor,3127,Masonry,Negligible,2.31
+217,37,4,Disaster Relief Camp,INF00217,26.71295,94.73474,1939,Fair,1850,Steel Frame,Low,7.92
+218,47,6,Disaster Relief Camp,INF00218,29.87697,99.33446,2009,Fair,2726,Seismically Isolated,High,6.9
+219,33,4,Disaster Relief Camp,INF00219,23.74321,99.89508,1998,Good,2774,Reinforced Concrete,Low,8.53
+220,25,3,Helipad,INF00220,26.4955,97.01697,2019,Poor,2946,Steel Frame,Negligible,2.08
+221,25,3,Telecom Tower,INF00221,26.16609,96.76206,1919,Fair,3516,Timber,Low,0.47
+222,9,1,Government Office,INF00222,27.40972,93.129,1977,Fair,965,Seismically Isolated,Low,2.33
+223,16,2,Police Station,INF00223,23.34636,90.86865,2006,Fair,1852,Seismically Isolated,Medium,9.4
+224,35,4,Water Treatment,INF00224,23.36116,91.80283,1968,Fair,4296,Masonry,Medium,9.08
+225,56,7,Police Station,INF00225,29.35115,97.66011,1960,Good,1063,Timber,Low,7.63
+226,27,3,Water Treatment,INF00226,25.19346,90.39539,1993,Fair,1553,Timber,High,7.37
+227,8,1,Hospital,INF00227,24.00204,98.5913,1950,Critical,3719,Steel Frame,Negligible,9.99
+228,4,1,Police Station,INF00228,26.59367,90.2549,1900,Critical,2030,Reinforced Concrete,Negligible,7.97
+229,21,2,Police Station,INF00229,24.0337,99.61863,1934,Critical,1686,Timber,Negligible,0.29
+230,62,8,Power Station,INF00230,27.09819,92.12802,1980,Critical,4574,Reinforced Concrete,Low,9.34
+231,31,3,Telecom Tower,INF00231,27.78719,95.27393,1921,Critical,3760,Reinforced Concrete,High,8.12
+232,20,2,Helipad,INF00232,23.34426,93.68252,1935,Poor,118,Masonry,Medium,4.96
+233,59,8,Power Station,INF00233,25.77592,92.60758,1972,Critical,1138,Steel Frame,High,7.3
+234,4,1,Power Station,INF00234,26.4564,90.59616,2023,Poor,2020,Timber,Negligible,1.38
+235,45,5,Disaster Relief Camp,INF00235,28.99544,94.9214,1901,Fair,2172,Seismically Isolated,Medium,9.63
+236,30,3,Disaster Relief Camp,INF00236,25.42713,92.87794,2016,Poor,115,Steel Frame,Negligible,9.95
+237,13,2,Disaster Relief Camp,INF00237,26.39746,99.73226,1933,Fair,4397,Reinforced Concrete,Negligible,2.97
+238,12,1,Telecom Tower,INF00238,26.75372,97.87773,1976,Critical,383,Reinforced Concrete,Medium,9.59
+239,47,6,Water Treatment,INF00239,29.42892,99.50578,1943,Poor,2643,Timber,Medium,7.24
+240,26,3,Police Station,INF00240,23.83679,90.46652,2010,Critical,1945,Masonry,Medium,5.15
+241,27,3,Disaster Relief Camp,INF00241,25.03323,90.73367,1983,Good,842,Reinforced Concrete,Medium,1.95
+242,25,3,Helipad,INF00242,26.38662,96.77943,1995,Good,2194,Reinforced Concrete,Medium,3.54
+243,53,6,School,INF00243,27.99988,91.33802,1974,Poor,4927,Masonry,High,8.13
+244,59,8,Water Treatment,INF00244,25.76134,92.34615,1918,Good,178,Reinforced Concrete,Negligible,7.02
+245,26,3,School,INF00245,23.96647,90.10388,2003,Fair,1709,Reinforced Concrete,Low,5.67
+246,15,2,Helipad,INF00246,27.17718,98.80115,1970,Poor,285,Masonry,Low,9.2
+247,34,4,Disaster Relief Camp,INF00247,26.18368,97.76752,1982,Good,1752,Reinforced Concrete,Negligible,6.77
+248,57,7,Water Treatment,INF00248,23.74012,93.22697,1911,Critical,305,Timber,High,2.92
+249,25,3,School,INF00249,26.38384,97.00869,1921,Poor,144,Steel Frame,High,2.48
+250,40,5,Helipad,INF00250,27.98022,97.46943,1931,Fair,4044,Steel Frame,Low,5.57
+251,9,1,Disaster Relief Camp,INF00251,27.66759,93.65114,1905,Fair,2745,Masonry,Negligible,8.73
+252,40,5,Disaster Relief Camp,INF00252,28.23277,97.42676,1991,Critical,966,Masonry,Low,7.51
+253,26,3,Helipad,INF00253,24.12608,90.09885,1926,Fair,627,Reinforced Concrete,High,2.3
+254,55,7,Water Treatment,INF00254,28.86747,94.22163,1916,Fair,2057,Masonry,Negligible,7.58
+255,32,3,Hospital,INF00255,25.52392,95.82373,2004,Poor,4085,Masonry,Negligible,2.15
+256,37,4,Police Station,INF00256,26.83661,94.88219,1914,Fair,2577,Reinforced Concrete,Negligible,7.52
+257,48,6,Helipad,INF00257,27.05739,94.62557,2000,Fair,76,Steel Frame,Low,4.39
+258,51,6,Police Station,INF00258,29.48939,91.01575,1993,Good,3555,Masonry,Negligible,9.32
+259,57,7,Police Station,INF00259,23.57668,93.20809,1910,Fair,854,Seismically Isolated,Negligible,4.94
+260,38,4,Disaster Relief Camp,INF00260,30.03343,98.78177,1934,Poor,1524,Masonry,Low,2.7
+261,25,3,Power Station,INF00261,26.42453,96.89334,1935,Critical,4232,Timber,High,1.21
+262,15,2,Hospital,INF00262,26.90704,98.47175,1937,Critical,2361,Masonry,Medium,8.94
+263,23,3,Disaster Relief Camp,INF00263,28.07022,91.66881,1996,Good,321,Seismically Isolated,High,1.31
+264,37,4,Hospital,INF00264,26.71436,94.52023,1903,Fair,3757,Timber,Negligible,2.02
+265,45,5,Telecom Tower,INF00265,28.84396,94.94543,1973,Critical,1902,Steel Frame,Low,4.74
+266,27,3,Government Office,INF00266,25.45115,90.78146,2011,Fair,4696,Masonry,High,5.71
+267,35,4,Helipad,INF00267,23.40089,91.43753,1918,Critical,802,Masonry,Medium,8.87
+268,6,1,Police Station,INF00268,26.33346,97.44849,1984,Critical,4047,Steel Frame,Medium,6.32
+269,3,1,Police Station,INF00269,27.42793,98.97632,1912,Good,189,Masonry,Low,8.05
+270,26,3,Power Station,INF00270,23.95059,90.33219,2012,Critical,4246,Reinforced Concrete,Low,9.16
+271,20,2,Police Station,INF00271,23.46962,93.60936,1902,Poor,3904,Reinforced Concrete,Low,8.11
+272,58,7,Hospital,INF00272,27.23536,94.22962,1902,Critical,2894,Seismically Isolated,High,2.86
+273,1,1,Telecom Tower,INF00273,27.36537,90.04842,1925,Poor,4356,Reinforced Concrete,High,5.07
+274,51,6,Water Treatment,INF00274,29.58183,90.70635,1922,Fair,3976,Seismically Isolated,High,1.22
+275,2,1,Power Station,INF00275,24.03124,91.59466,2016,Critical,1482,Steel Frame,Medium,3.94
+276,58,7,School,INF00276,27.4345,94.57114,1902,Poor,2333,Reinforced Concrete,Negligible,8.78
+277,8,1,Power Station,INF00277,23.97544,98.52437,2001,Critical,2218,Masonry,Medium,1.14
+278,23,3,Telecom Tower,INF00278,27.68868,91.61563,2019,Poor,2614,Reinforced Concrete,Low,5.74
+279,50,6,Government Office,INF00279,24.17456,92.3675,1910,Fair,2407,Reinforced Concrete,Medium,3.08
+280,16,2,School,INF00280,23.36733,90.75813,1951,Good,637,Seismically Isolated,Medium,1.54
+281,56,7,Helipad,INF00281,29.31605,97.71245,1924,Critical,2959,Steel Frame,High,1.39
+282,57,7,Police Station,INF00282,23.36733,93.29659,1945,Poor,1948,Timber,Medium,5.33
+283,5,1,Helipad,INF00283,23.86126,94.77258,2009,Critical,1757,Timber,Medium,9.51
+284,15,2,Disaster Relief Camp,INF00284,26.9058,98.46104,2009,Critical,3207,Steel Frame,Low,3.08
+285,49,6,Government Office,INF00285,29.37241,98.95564,2017,Poor,84,Reinforced Concrete,Negligible,8.8
+286,26,3,Power Station,INF00286,23.85346,90.58548,2019,Good,378,Seismically Isolated,High,0.45
+287,40,5,Telecom Tower,INF00287,28.27631,97.84245,1946,Critical,3122,Seismically Isolated,Medium,4.63
+288,37,4,Power Station,INF00288,26.68564,94.53036,1983,Poor,1588,Reinforced Concrete,High,6.23
+289,7,1,School,INF00289,26.29637,92.13955,1952,Fair,4221,Seismically Isolated,Medium,3.93
+290,20,2,Power Station,INF00290,23.41935,93.81797,1916,Good,737,Timber,Negligible,8.43
+291,20,2,Hospital,INF00291,23.23974,93.43369,1932,Critical,3047,Seismically Isolated,Low,0.45
+292,8,1,School,INF00292,23.98618,98.404,1979,Critical,4169,Seismically Isolated,Negligible,8.41
+293,62,8,Helipad,INF00293,26.88486,92.41642,1901,Critical,4348,Reinforced Concrete,Low,6.68
+294,29,3,Disaster Relief Camp,INF00294,26.15782,98.95901,1978,Critical,992,Timber,Negligible,9.87
+295,48,6,Water Treatment,INF00295,26.637,95.01212,1901,Poor,122,Steel Frame,Low,0.15
+296,61,8,Police Station,INF00296,26.68072,89.94519,1962,Critical,3409,Seismically Isolated,Negligible,0.39
+297,41,5,Telecom Tower,INF00297,23.09814,94.39114,1921,Poor,1655,Reinforced Concrete,Medium,2.4
+298,23,3,Power Station,INF00298,28.08268,91.78967,1965,Critical,2980,Reinforced Concrete,Medium,3.52
+299,25,3,Water Treatment,INF00299,26.58364,96.95761,1978,Good,4195,Masonry,Low,1.62
+300,10,1,Helipad,INF00300,23.51511,97.64335,1954,Fair,1342,Timber,Low,8.2
+301,16,2,Police Station,INF00301,23.52486,90.71884,1982,Fair,1191,Timber,High,0.77
+302,40,5,Police Station,INF00302,27.94857,97.46241,1920,Poor,3568,Reinforced Concrete,High,9.31
+303,59,8,Telecom Tower,INF00303,25.75039,92.23624,1957,Critical,4265,Reinforced Concrete,Low,0.71
+304,30,3,Government Office,INF00304,25.46348,92.3496,1976,Fair,1752,Steel Frame,Medium,6.84
+305,11,1,Police Station,INF00305,23.02493,90.96826,1945,Fair,262,Reinforced Concrete,Negligible,3.61
+306,30,3,Power Station,INF00306,25.57476,92.85522,1951,Good,4931,Steel Frame,Negligible,1.28
+307,19,2,Water Treatment,INF00307,24.28385,96.50508,1910,Poor,3581,Masonry,Low,1.03
+308,42,5,Telecom Tower,INF00308,22.21202,97.06942,1910,Critical,4543,Reinforced Concrete,Negligible,0.97
+309,43,5,Police Station,INF00309,29.75061,97.46561,2016,Poor,2704,Steel Frame,High,6.25
+310,31,3,Telecom Tower,INF00310,28.04444,95.30418,1905,Fair,3475,Reinforced Concrete,Negligible,6.7
+311,25,3,Disaster Relief Camp,INF00311,26.66007,96.59044,1986,Critical,4127,Masonry,Medium,2.77
+312,5,1,Water Treatment,INF00312,23.516,95.08163,1918,Good,3326,Steel Frame,High,8.01
+313,54,6,Power Station,INF00313,29.70137,91.58412,1970,Poor,4745,Reinforced Concrete,Medium,8.55
+314,57,7,Police Station,INF00314,23.80543,93.32549,2009,Poor,3442,Steel Frame,High,1.4
+315,47,6,Helipad,INF00315,29.74095,99.39445,1957,Fair,2063,Masonry,Negligible,4.2
+316,11,1,Water Treatment,INF00316,22.94957,90.8797,1988,Good,4047,Reinforced Concrete,Low,5.73
+317,59,8,Disaster Relief Camp,INF00317,25.37255,92.48026,1974,Good,1177,Steel Frame,Low,3.73
+318,28,3,Helipad,INF00318,29.18038,93.31401,1962,Good,2853,Masonry,Medium,3.37
+319,36,4,Police Station,INF00319,25.38381,90.89435,1927,Good,3694,Timber,High,7.26
+320,24,3,Police Station,INF00320,24.25203,99.21698,1989,Good,4123,Steel Frame,Negligible,4.85
+321,25,3,Hospital,INF00321,26.43728,96.72115,1985,Good,2173,Timber,Low,4.24
+322,33,4,Hospital,INF00322,23.50563,99.98717,1985,Critical,4667,Timber,Negligible,1.69
+323,60,8,Telecom Tower,INF00323,24.90832,95.69812,1968,Critical,3767,Reinforced Concrete,Low,7.36
+324,41,5,School,INF00324,22.78425,94.43029,1947,Fair,1265,Timber,Medium,3.75
+325,31,3,Water Treatment,INF00325,27.88261,95.09128,1969,Good,4884,Timber,Medium,9.37
+326,8,1,Disaster Relief Camp,INF00326,24.38123,98.93337,1941,Poor,2273,Steel Frame,High,0.26
+327,10,1,Water Treatment,INF00327,23.95859,97.42029,2001,Poor,3329,Seismically Isolated,High,5.84
+328,30,3,Water Treatment,INF00328,25.47278,92.72185,1988,Poor,588,Reinforced Concrete,Low,7.79
+329,42,5,Water Treatment,INF00329,21.79661,97.47099,1920,Fair,2801,Steel Frame,Low,9.51
+330,3,1,Helipad,INF00330,27.50464,98.85832,1928,Fair,4616,Masonry,Negligible,4.93
+331,18,2,Telecom Tower,INF00331,28.72716,98.59515,1983,Critical,1216,Masonry,Low,0.24
+332,20,2,Disaster Relief Camp,INF00332,23.00268,93.73244,2016,Critical,4019,Steel Frame,High,0.04
+333,45,5,Government Office,INF00333,28.86709,94.84568,1912,Critical,2631,Timber,High,5.94
+334,7,1,Hospital,INF00334,26.21372,92.42033,2014,Critical,4155,Timber,High,1.49
+335,40,5,Government Office,INF00335,28.28186,97.86241,1933,Good,4494,Masonry,High,3.62
+336,55,7,Water Treatment,INF00336,29.20894,94.31295,1952,Fair,2391,Steel Frame,Negligible,8.96
+337,42,5,Government Office,INF00337,22.26556,97.20754,1977,Good,4773,Reinforced Concrete,Negligible,9.82
+338,52,6,Disaster Relief Camp,INF00338,28.34114,100.00042,1982,Poor,2065,Timber,Low,3.82
+339,58,7,Helipad,INF00339,27.19089,94.61738,1964,Poor,4317,Timber,High,5.93
+340,56,7,Disaster Relief Camp,INF00340,29.2251,97.8359,2017,Good,1384,Masonry,Negligible,4.75
+341,18,2,School,INF00341,28.88211,98.74607,1913,Good,2772,Seismically Isolated,High,6.31
+342,61,8,School,INF00342,26.98988,89.91645,2015,Poor,3519,Masonry,Negligible,1.79
+343,39,4,Helipad,INF00343,27.51108,91.41825,1947,Poor,3687,Timber,Negligible,4.73
+344,24,3,Government Office,INF00344,24.12784,99.14118,1910,Good,2871,Timber,Medium,0.32
+345,21,2,Disaster Relief Camp,INF00345,24.26973,99.22872,1996,Good,282,Masonry,Medium,5.89
+346,43,5,School,INF00346,29.50586,97.87666,1960,Poor,533,Steel Frame,Medium,8.84
+347,38,4,Power Station,INF00347,29.47268,98.86251,1963,Good,4564,Reinforced Concrete,Negligible,9.31
+348,19,2,Police Station,INF00348,23.94177,96.65678,1914,Good,4628,Seismically Isolated,Low,2.41
+349,49,6,Police Station,INF00349,29.34762,98.94003,2000,Poor,4677,Reinforced Concrete,High,0.03
+350,54,6,Police Station,INF00350,29.76543,91.56212,1901,Critical,2606,Timber,Medium,2.75
+351,34,4,Telecom Tower,INF00351,26.14109,97.58082,1917,Good,3961,Steel Frame,Medium,8.72
+352,52,6,Disaster Relief Camp,INF00352,28.73179,99.9425,1977,Critical,4973,Timber,Negligible,2.81
+353,55,7,Water Treatment,INF00353,29.04578,94.24998,1900,Fair,2249,Seismically Isolated,Low,8.94
+354,14,2,Helipad,INF00354,22.59995,92.82775,1925,Poor,1632,Seismically Isolated,Negligible,0.95
+355,48,6,Power Station,INF00355,26.64659,94.6058,1979,Critical,3456,Seismically Isolated,High,6.68
+356,56,7,Telecom Tower,INF00356,29.16088,97.49579,1920,Critical,4437,Masonry,Negligible,5.7
+357,54,6,Disaster Relief Camp,INF00357,29.31784,91.62175,1931,Critical,4700,Seismically Isolated,Negligible,8.62
+358,55,7,Power Station,INF00358,28.68687,94.42147,1925,Fair,162,Timber,Low,4.27
+359,50,6,Telecom Tower,INF00359,23.88608,92.61481,1962,Good,950,Steel Frame,Negligible,2.74
+360,62,8,Power Station,INF00360,27.12032,92.50409,1956,Good,4181,Seismically Isolated,Negligible,4.95
+361,50,6,Police Station,INF00361,23.90584,92.32335,2019,Good,1728,Seismically Isolated,Medium,5.26
+362,40,5,Police Station,INF00362,27.984,97.78465,1957,Poor,2100,Reinforced Concrete,High,6.66
+363,36,4,Police Station,INF00363,25.45459,90.43331,2009,Fair,1600,Timber,Low,0.38
+364,40,5,Helipad,INF00364,28.27632,97.39335,1938,Good,4947,Steel Frame,High,2.14
+365,51,6,Disaster Relief Camp,INF00365,29.85101,90.75992,1948,Poor,2277,Reinforced Concrete,Medium,5.18
+366,39,4,Police Station,INF00366,27.47817,90.86384,1926,Poor,4447,Seismically Isolated,High,6.83
+367,42,5,Helipad,INF00367,22.31327,97.50029,1917,Fair,3785,Steel Frame,Medium,5.32
+368,39,4,Government Office,INF00368,27.60686,90.92211,1913,Critical,4926,Reinforced Concrete,Medium,6.81
+369,21,2,School,INF00369,24.27752,99.37973,1915,Critical,2833,Steel Frame,Negligible,2.6
+370,32,3,Disaster Relief Camp,INF00370,25.22388,95.55128,1905,Poor,4734,Reinforced Concrete,Medium,1.56
+371,8,1,Power Station,INF00371,23.98183,98.88216,1964,Poor,674,Steel Frame,Negligible,0.01
+372,5,1,School,INF00372,23.96256,95.16768,1980,Good,1509,Steel Frame,High,7.69
+373,31,3,Police Station,INF00373,28.04053,95.47574,1997,Critical,1541,Masonry,Medium,6.68
+374,55,7,Police Station,INF00374,29.09873,94.13316,2020,Poor,1085,Reinforced Concrete,Negligible,4.99
+375,2,1,School,INF00375,23.79809,91.6835,1999,Poor,4822,Masonry,High,0.21
+376,61,8,Disaster Relief Camp,INF00376,26.96994,90.29067,1928,Critical,3339,Masonry,Low,8.27
+377,42,5,Telecom Tower,INF00377,22.18133,97.16715,2000,Good,1752,Steel Frame,Negligible,5.27
+378,28,3,Government Office,INF00378,29.01709,93.13141,2023,Fair,1476,Seismically Isolated,Medium,2.45
+379,7,1,Power Station,INF00379,26.63035,92.05629,1931,Critical,1581,Timber,Low,9.46
+380,40,5,Police Station,INF00380,27.86982,97.64622,1904,Good,2055,Seismically Isolated,Low,4.37
+381,1,1,School,INF00381,26.89709,90.37204,1998,Poor,2385,Steel Frame,Medium,8.66
+382,33,4,Water Treatment,INF00382,23.7562,100.10798,1961,Critical,372,Timber,Medium,5.27
+383,18,2,School,INF00383,28.63135,98.73097,1932,Fair,1663,Seismically Isolated,Low,0.13
+384,15,2,Hospital,INF00384,26.90698,98.54892,2003,Fair,2694,Steel Frame,Negligible,9.24
+385,4,1,Police Station,INF00385,26.91681,90.35682,1905,Critical,2577,Reinforced Concrete,Negligible,9.12
+386,42,5,Disaster Relief Camp,INF00386,22.28325,97.26261,1954,Good,4563,Reinforced Concrete,Negligible,3.51
+387,7,1,Government Office,INF00387,26.61559,92.19218,1923,Critical,4487,Masonry,High,5.53
+388,42,5,Government Office,INF00388,21.85792,96.9969,1978,Good,1569,Seismically Isolated,High,1.53
+389,44,5,Helipad,INF00389,29.59312,98.69233,1932,Good,1487,Seismically Isolated,High,5.05
+390,38,4,Power Station,INF00390,29.76674,98.55103,1958,Fair,2888,Reinforced Concrete,High,5.26
+391,47,6,Disaster Relief Camp,INF00391,29.73945,99.38341,1907,Good,1588,Reinforced Concrete,High,9.24
+392,19,2,Police Station,INF00392,24.07071,96.49138,1913,Good,3372,Seismically Isolated,Medium,0.17
+393,48,6,Government Office,INF00393,26.58802,94.59183,1958,Good,3303,Timber,High,0.59
+394,13,2,Police Station,INF00394,26.3302,99.4968,1950,Critical,2149,Seismically Isolated,High,1.55
+395,22,2,School,INF00395,22.44918,96.56076,2002,Good,2320,Seismically Isolated,Low,0.53
+396,49,6,Helipad,INF00396,29.25116,98.95104,1910,Critical,461,Reinforced Concrete,Negligible,2.06
+397,38,4,School,INF00397,30.04036,98.70376,1902,Good,109,Timber,High,4.56
+398,42,5,Hospital,INF00398,22.27124,97.13624,2003,Critical,3559,Steel Frame,Medium,1.87
+399,7,1,Water Treatment,INF00399,26.52431,92.34634,1948,Poor,3571,Reinforced Concrete,High,0.53
+400,31,3,Telecom Tower,INF00400,27.71627,95.53272,1998,Fair,1778,Timber,Low,7.88
+401,15,2,Helipad,INF00401,26.84799,98.46075,1919,Poor,4972,Reinforced Concrete,Negligible,5.51
+402,9,1,Disaster Relief Camp,INF00402,27.88484,93.18985,1910,Good,724,Masonry,Medium,3.09
+403,48,6,Power Station,INF00403,26.75161,95.08545,1945,Good,1654,Steel Frame,High,0.77
+404,15,2,Power Station,INF00404,27.10204,98.71624,1915,Poor,4009,Steel Frame,Negligible,9.32
+405,57,7,Telecom Tower,INF00405,23.65409,93.14737,1928,Fair,609,Steel Frame,Low,5.79
+406,41,5,Water Treatment,INF00406,22.63833,94.49092,1912,Good,3509,Seismically Isolated,Low,3.4
+407,14,2,Helipad,INF00407,22.65948,93.1332,1996,Good,1350,Steel Frame,Low,3.26
+408,8,1,Power Station,INF00408,24.07083,98.59664,1922,Critical,812,Reinforced Concrete,High,0.45
+409,62,8,Hospital,INF00409,26.90885,92.31792,1971,Critical,4803,Seismically Isolated,Medium,1.89
+410,9,1,Hospital,INF00410,27.84674,93.17212,1989,Good,91,Reinforced Concrete,Medium,1.8
+411,38,4,Telecom Tower,INF00411,29.53173,98.53773,1978,Poor,3799,Seismically Isolated,Negligible,0.2
+412,58,7,Police Station,INF00412,27.01262,94.21001,1996,Poor,201,Masonry,Negligible,6.71
+413,5,1,School,INF00413,23.92173,95.22557,1901,Fair,483,Reinforced Concrete,Negligible,1.6
+414,18,2,Police Station,INF00414,29.11432,98.81676,1941,Good,384,Timber,Negligible,2.68
+415,3,1,Hospital,INF00415,27.6176,99.11506,1946,Good,189,Steel Frame,Medium,1.03
+416,44,5,Power Station,INF00416,29.39173,98.76234,1911,Poor,3971,Timber,High,5.85
+417,17,2,Police Station,INF00417,23.69222,92.66336,1994,Poor,3910,Masonry,Negligible,9.44
+418,2,1,Police Station,INF00418,23.71219,91.66368,1994,Fair,977,Seismically Isolated,Negligible,1.03
+419,25,3,Power Station,INF00419,26.33012,96.89097,2006,Good,2254,Steel Frame,Medium,5.74
+420,22,2,Police Station,INF00420,22.70897,96.43157,1939,Fair,1481,Timber,Negligible,0.9
+421,46,5,Hospital,INF00421,23.36419,97.69467,1982,Poor,818,Reinforced Concrete,High,7.43
+422,55,7,Police Station,INF00422,29.21302,94.48178,1935,Poor,149,Masonry,Negligible,4.38
+423,14,2,Police Station,INF00423,22.50084,92.63524,1924,Good,2474,Masonry,Negligible,8.17
+424,28,3,Water Treatment,INF00424,29.04856,93.09796,2013,Poor,426,Seismically Isolated,Medium,4.56
+425,37,4,Power Station,INF00425,26.92554,94.61781,2008,Fair,4093,Seismically Isolated,Medium,9.37
+426,2,1,Disaster Relief Camp,INF00426,24.13319,91.40169,1949,Good,4964,Reinforced Concrete,Medium,4.48
+427,47,6,Helipad,INF00427,29.67044,99.08506,1937,Poor,1000,Timber,Negligible,2.32
+428,23,3,School,INF00428,27.94543,91.4272,1927,Good,3322,Seismically Isolated,High,5.87
+429,46,5,Government Office,INF00429,23.36314,97.58529,1920,Critical,1022,Reinforced Concrete,Low,5.84
+430,36,4,Police Station,INF00430,25.27093,90.5635,1923,Good,908,Seismically Isolated,High,7.53
+431,54,6,Telecom Tower,INF00431,29.37049,91.51594,1967,Poor,91,Timber,Negligible,8.31
+432,35,4,Telecom Tower,INF00432,22.99003,91.67088,1926,Good,3893,Reinforced Concrete,Medium,2.07
+433,25,3,Police Station,INF00433,26.4363,96.81715,1906,Good,4020,Seismically Isolated,Medium,0.04
+434,27,3,Police Station,INF00434,25.13984,90.79483,1922,Fair,1510,Steel Frame,High,3.09
+435,11,1,Telecom Tower,INF00435,23.0116,90.91745,2003,Poor,635,Seismically Isolated,Medium,0.12
+436,34,4,Power Station,INF00436,26.09533,97.48208,1902,Critical,4980,Reinforced Concrete,Negligible,7.41
+437,27,3,Power Station,INF00437,25.15793,90.44404,1963,Poor,71,Steel Frame,Negligible,6.02
+438,17,2,Government Office,INF00438,23.56219,92.99746,1978,Fair,146,Reinforced Concrete,Negligible,7.89
+439,60,8,School,INF00439,24.56831,95.97928,1909,Fair,2109,Timber,Negligible,2.0
+440,23,3,Police Station,INF00440,27.86261,91.72372,1912,Fair,1523,Timber,Medium,8.6
+441,13,2,Telecom Tower,INF00441,26.27118,99.49902,1977,Poor,4561,Reinforced Concrete,High,7.01
+442,56,7,Telecom Tower,INF00442,29.33392,97.58215,1982,Good,1979,Reinforced Concrete,High,3.15
+443,51,6,Disaster Relief Camp,INF00443,29.56379,90.66678,1940,Good,4470,Reinforced Concrete,High,6.98
+444,44,5,Power Station,INF00444,29.56958,98.59391,1985,Fair,2771,Steel Frame,Medium,7.6
+445,39,4,Helipad,INF00445,27.72262,91.14806,1933,Fair,2086,Timber,Low,4.42
+446,24,3,Telecom Tower,INF00446,24.27885,99.36122,1907,Fair,666,Timber,Negligible,5.86
+447,47,6,Power Station,INF00447,29.58515,99.08052,1908,Critical,4650,Reinforced Concrete,Low,4.01
+448,59,8,Telecom Tower,INF00448,25.64918,92.69864,1912,Good,766,Timber,Low,5.33
+449,30,3,Government Office,INF00449,25.42191,92.88791,1959,Fair,1848,Timber,Low,0.65
+450,52,6,Hospital,INF00450,28.70697,99.72331,1961,Poor,3580,Seismically Isolated,Low,2.67
+451,24,3,Helipad,INF00451,23.88475,99.11626,1997,Good,1283,Timber,Low,7.86
+452,4,1,School,INF00452,26.56237,90.24672,1932,Good,4969,Steel Frame,High,9.21
+453,10,1,Hospital,INF00453,23.68821,97.67084,1940,Fair,975,Reinforced Concrete,Low,2.75
+454,58,7,Telecom Tower,INF00454,27.0852,94.14843,1983,Critical,1594,Reinforced Concrete,Medium,8.01
+455,54,6,Power Station,INF00455,29.44355,91.85187,1999,Fair,3937,Seismically Isolated,Low,2.49
+456,62,8,Disaster Relief Camp,INF00456,27.00941,92.14806,1928,Critical,1912,Steel Frame,Negligible,6.63
+457,52,6,Police Station,INF00457,28.24072,99.52463,2017,Fair,3984,Timber,Negligible,5.22
+458,49,6,Water Treatment,INF00458,29.31401,99.07515,2003,Poor,75,Timber,Low,6.04
+459,21,2,School,INF00459,24.21201,99.28207,1941,Fair,3922,Seismically Isolated,Negligible,5.26
+460,43,5,Power Station,INF00460,30.03999,97.38467,1904,Fair,4212,Seismically Isolated,Medium,0.73
+461,44,5,Disaster Relief Camp,INF00461,29.24282,98.54018,1908,Good,4644,Seismically Isolated,Medium,2.35
+462,53,6,Telecom Tower,INF00462,28.41989,91.55824,1942,Poor,872,Seismically Isolated,High,8.55
+463,10,1,Telecom Tower,INF00463,23.54992,97.83979,1935,Fair,1488,Masonry,Negligible,2.89
+464,8,1,Helipad,INF00464,24.28492,98.69038,2016,Fair,2232,Seismically Isolated,Medium,5.09
+465,44,5,Helipad,INF00465,29.55338,98.93892,1988,Poor,4334,Masonry,Medium,6.08
+466,28,3,Water Treatment,INF00466,28.72298,93.21858,1980,Fair,2482,Steel Frame,High,9.72
+467,22,2,School,INF00467,22.34728,96.34623,1982,Fair,1731,Reinforced Concrete,High,9.8
+468,57,7,Hospital,INF00468,23.43954,92.84553,1921,Good,879,Timber,High,1.49
+469,24,3,Power Station,INF00469,24.39599,99.16166,1927,Good,3010,Timber,Medium,9.51
+470,22,2,Water Treatment,INF00470,22.63987,96.15663,1928,Good,574,Masonry,Medium,4.89
+471,12,1,Water Treatment,INF00471,26.72879,97.93218,1991,Critical,4684,Reinforced Concrete,Low,3.97
+472,45,5,Government Office,INF00472,28.77437,95.15785,1966,Good,3644,Steel Frame,High,3.13
+473,13,2,Police Station,INF00473,26.55841,99.90946,1943,Good,4667,Timber,Low,7.19
+474,12,1,Hospital,INF00474,26.5942,97.92204,1946,Good,3048,Reinforced Concrete,Medium,2.41
+475,16,2,School,INF00475,23.66067,90.93966,1900,Poor,3945,Masonry,Medium,6.03
+476,60,8,Water Treatment,INF00476,24.92286,95.68827,1981,Fair,4032,Steel Frame,Negligible,9.67
+477,38,4,Water Treatment,INF00477,30.0258,98.53171,1922,Good,194,Steel Frame,Low,3.81
+478,51,6,Police Station,INF00478,29.47935,90.70591,2017,Poor,442,Masonry,Low,5.76
+479,38,4,Water Treatment,INF00479,29.56746,98.43405,1907,Poor,3828,Seismically Isolated,High,3.57
+480,35,4,Water Treatment,INF00480,23.48389,91.85279,1905,Good,1504,Masonry,Medium,5.89
+481,62,8,Telecom Tower,INF00481,26.79433,92.04198,1941,Critical,4330,Seismically Isolated,Low,2.87
+482,54,6,Hospital,INF00482,29.58861,91.36627,2015,Good,1076,Reinforced Concrete,Medium,9.29
+483,33,4,Telecom Tower,INF00483,23.75489,99.98851,1943,Poor,2445,Seismically Isolated,Negligible,4.77
+484,28,3,Telecom Tower,INF00484,28.86788,93.14091,2020,Good,1351,Reinforced Concrete,Negligible,2.48
+485,48,6,Helipad,INF00485,26.50822,94.87107,1999,Good,1296,Masonry,High,4.47
+486,37,4,Hospital,INF00486,26.51895,94.54433,1940,Good,92,Seismically Isolated,Medium,8.56
+487,1,1,Hospital,INF00487,27.11845,90.45834,1982,Critical,2104,Reinforced Concrete,High,7.58
+488,21,2,Telecom Tower,INF00488,24.07804,99.27122,1954,Critical,1646,Timber,Low,4.12
+489,29,3,Helipad,INF00489,26.19986,98.61543,2017,Critical,2731,Masonry,Negligible,8.7
+490,50,6,Police Station,INF00490,23.9805,92.35091,1902,Critical,3443,Reinforced Concrete,Low,0.58
+491,59,8,Government Office,INF00491,25.84919,92.36885,1938,Poor,4606,Steel Frame,High,3.95
+492,51,6,Disaster Relief Camp,INF00492,29.70138,90.77377,2009,Good,1883,Masonry,Negligible,8.94
+493,4,1,Telecom Tower,INF00493,26.93399,90.16438,1916,Fair,4618,Steel Frame,Low,2.44
+494,41,5,Telecom Tower,INF00494,22.85876,94.08078,1972,Fair,3368,Seismically Isolated,Negligible,2.92
+495,16,2,Telecom Tower,INF00495,23.56175,90.63474,1934,Critical,1988,Steel Frame,Low,1.99
+496,45,5,School,INF00496,28.4781,95.25628,1957,Critical,4830,Seismically Isolated,Medium,6.39
+497,41,5,Water Treatment,INF00497,22.71343,94.20819,1933,Critical,200,Reinforced Concrete,Negligible,0.9
+498,1,1,Power Station,INF00498,26.92908,90.01088,2013,Poor,1874,Seismically Isolated,Negligible,7.79
+499,33,4,Telecom Tower,INF00499,23.96652,99.98132,1994,Good,2770,Steel Frame,Low,5.79
+500,1,1,Water Treatment,INF00500,27.16111,90.24731,2011,Good,4441,Seismically Isolated,High,3.68
+501,59,8,Hospital,INF00501,25.37403,92.23404,2016,Critical,668,Timber,Negligible,8.73
+502,54,6,Telecom Tower,INF00502,29.76354,91.54997,2005,Good,3151,Steel Frame,Medium,5.68
+503,5,1,Government Office,INF00503,23.95526,95.1725,1911,Critical,508,Reinforced Concrete,Low,2.65
+504,60,8,Disaster Relief Camp,INF00504,24.59122,96.16638,1983,Fair,1150,Reinforced Concrete,High,6.82
+505,62,8,Water Treatment,INF00505,26.84272,92.36586,2000,Good,3415,Timber,Medium,9.79
+506,31,3,Helipad,INF00506,27.70489,95.53784,1943,Critical,922,Masonry,Low,8.09
+507,17,2,Hospital,INF00507,23.98685,92.73959,1989,Critical,729,Timber,Negligible,5.94
+508,32,3,Helipad,INF00508,25.59548,95.81949,1974,Poor,3655,Seismically Isolated,Low,4.63
+509,46,5,Helipad,INF00509,22.98944,97.47964,2023,Fair,3758,Timber,High,7.76
+510,31,3,School,INF00510,27.94879,95.20256,1954,Good,1631,Steel Frame,Negligible,3.66
+511,13,2,Hospital,INF00511,26.30905,99.61384,1908,Fair,966,Masonry,Negligible,8.76
+512,36,4,School,INF00512,25.27941,90.48822,1988,Critical,4576,Reinforced Concrete,Low,5.89
+513,17,2,School,INF00513,23.6706,93.00281,1983,Critical,4664,Steel Frame,Low,1.13
+514,40,5,Water Treatment,INF00514,27.84681,97.63807,1922,Fair,3233,Steel Frame,High,8.4
+515,39,4,School,INF00515,27.50176,90.96923,1964,Fair,2451,Reinforced Concrete,Low,9.05
+516,49,6,Water Treatment,INF00516,29.42626,98.53857,1989,Fair,4433,Steel Frame,Negligible,3.86
+517,36,4,Power Station,INF00517,25.28948,90.65382,1918,Critical,2080,Timber,High,4.98
+518,36,4,Police Station,INF00518,25.3662,90.71487,1907,Fair,4743,Steel Frame,Medium,8.36
+519,40,5,School,INF00519,27.81545,97.40558,1929,Poor,4732,Steel Frame,Negligible,0.49
+520,29,3,School,INF00520,25.96789,98.60702,2021,Critical,4277,Timber,High,7.92
+521,28,3,Police Station,INF00521,29.1779,93.204,1998,Fair,4949,Seismically Isolated,Low,5.26
+522,22,2,Helipad,INF00522,22.82417,96.23014,2019,Good,2848,Masonry,Negligible,7.74
+523,53,6,Telecom Tower,INF00523,28.36696,91.3051,1969,Good,4609,Seismically Isolated,High,0.05
+524,43,5,Power Station,INF00524,29.70926,97.35219,1965,Critical,3951,Seismically Isolated,Low,3.86
+525,17,2,Helipad,INF00525,23.99151,93.16431,1997,Poor,4260,Reinforced Concrete,Negligible,5.69
+526,10,1,School,INF00526,23.62649,97.54395,1947,Fair,2038,Seismically Isolated,Medium,3.68
+527,7,1,Hospital,INF00527,26.47657,92.11267,1992,Fair,881,Seismically Isolated,Medium,2.28
+528,16,2,Disaster Relief Camp,INF00528,23.82542,90.86776,2022,Fair,3438,Masonry,Low,4.46
+529,48,6,Power Station,INF00529,26.75176,94.82141,1907,Good,2842,Reinforced Concrete,Medium,3.18
+530,32,3,Hospital,INF00530,25.65071,95.7114,1926,Poor,2473,Seismically Isolated,Medium,6.97
+531,4,1,Helipad,INF00531,27.02117,90.29315,1926,Good,3182,Reinforced Concrete,Negligible,6.66
+532,11,1,Power Station,INF00532,22.5519,91.04874,1906,Critical,4930,Reinforced Concrete,High,2.69
+533,1,1,Water Treatment,INF00533,27.14973,90.36594,1965,Critical,2702,Reinforced Concrete,Low,0.21
+534,9,1,Helipad,INF00534,27.52775,93.21493,2013,Critical,548,Timber,Low,7.62
+535,30,3,Hospital,INF00535,25.63116,92.92704,1916,Fair,3708,Timber,Medium,0.55
+536,60,8,Power Station,INF00536,24.68386,95.68827,2006,Good,2004,Steel Frame,Medium,9.69
+537,31,3,Water Treatment,INF00537,27.87137,95.55545,1904,Fair,2064,Seismically Isolated,Medium,6.94
+538,34,4,Water Treatment,INF00538,25.77694,97.49274,1919,Good,2737,Seismically Isolated,Negligible,6.51
+539,7,1,Helipad,INF00539,26.31214,92.06202,1929,Poor,1453,Timber,Medium,1.82
+540,25,3,Water Treatment,INF00540,26.39547,96.65208,1921,Fair,4130,Masonry,Low,8.34
+541,32,3,Police Station,INF00541,25.32501,95.81078,1915,Poor,381,Seismically Isolated,Low,1.61
+542,60,8,Telecom Tower,INF00542,24.97629,95.78632,2023,Fair,3640,Reinforced Concrete,Medium,1.34
+543,6,1,Disaster Relief Camp,INF00543,26.36455,96.89134,1970,Good,4867,Timber,Medium,9.31
+544,55,7,Police Station,INF00544,29.2013,94.43379,1982,Fair,4990,Timber,Negligible,4.32
+545,56,7,Water Treatment,INF00545,29.23889,97.36306,1965,Critical,3741,Masonry,Negligible,6.96
+546,33,4,School,INF00546,23.98148,99.91934,1975,Good,831,Masonry,High,9.47
+547,49,6,Telecom Tower,INF00547,29.58079,98.53484,1907,Good,1223,Steel Frame,Negligible,5.66
+548,17,2,Helipad,INF00548,24.04937,92.75558,1958,Critical,4465,Masonry,Negligible,6.55
+549,25,3,Government Office,INF00549,26.72706,97.06344,1963,Poor,3045,Timber,Low,5.16
+550,38,4,Police Station,INF00550,29.69195,98.90373,1999,Critical,686,Timber,Low,8.58
+551,52,6,Helipad,INF00551,28.69626,99.73225,1929,Good,4341,Steel Frame,Negligible,4.54
+552,33,4,Hospital,INF00552,23.51795,99.74958,1954,Critical,1734,Seismically Isolated,Low,2.25
+553,55,7,Telecom Tower,INF00553,29.27751,94.15218,1989,Poor,2737,Timber,Low,6.4
+554,46,5,Police Station,INF00554,23.50169,97.48897,1936,Critical,814,Steel Frame,Medium,7.5
+555,27,3,Disaster Relief Camp,INF00555,24.93401,90.75396,2021,Good,928,Reinforced Concrete,High,5.12
+556,30,3,Telecom Tower,INF00556,25.54521,92.43882,2022,Fair,2654,Timber,Negligible,8.13
+557,34,4,Disaster Relief Camp,INF00557,26.15565,97.82989,2015,Critical,1290,Steel Frame,High,8.46
+558,17,2,Police Station,INF00558,23.53575,92.75104,1976,Critical,173,Seismically Isolated,Medium,8.47
+559,57,7,Helipad,INF00559,23.46068,93.2726,1944,Good,4270,Reinforced Concrete,Medium,7.59
+560,48,6,Government Office,INF00560,26.54813,94.70138,1993,Critical,305,Reinforced Concrete,Low,9.44
+561,59,8,Disaster Relief Camp,INF00561,25.76175,92.5163,1995,Good,4721,Steel Frame,Low,4.94
+562,10,1,Telecom Tower,INF00562,23.77229,97.50635,1973,Poor,3357,Seismically Isolated,Low,2.74
+563,21,2,Water Treatment,INF00563,24.42056,99.4197,2017,Good,81,Steel Frame,High,5.96
+564,17,2,Helipad,INF00564,23.81516,92.91388,1912,Good,1410,Masonry,Low,4.81
+565,58,7,Police Station,INF00565,27.13278,94.28651,1994,Fair,4142,Masonry,Medium,6.03
+566,49,6,Police Station,INF00566,29.19038,98.55228,1924,Fair,1809,Timber,Negligible,5.49
+567,58,7,Water Treatment,INF00567,27.40108,94.48226,1999,Good,4178,Timber,Medium,5.29
+568,31,3,Disaster Relief Camp,INF00568,27.78942,95.58707,1945,Critical,3061,Timber,Medium,3.07
+569,31,3,School,INF00569,28.02128,95.63633,1936,Good,2913,Seismically Isolated,Negligible,9.71
+570,44,5,Helipad,INF00570,29.25321,98.41173,1971,Critical,3470,Seismically Isolated,Low,4.72
+571,43,5,Helipad,INF00571,29.96468,97.62117,1924,Good,4250,Timber,High,7.95
+572,61,8,Telecom Tower,INF00572,26.80841,90.01485,1991,Good,2502,Timber,Medium,7.56
+573,14,2,Helipad,INF00573,22.348,93.08236,1909,Critical,2883,Reinforced Concrete,Medium,9.27
+574,59,8,School,INF00574,25.75898,92.53805,1947,Critical,3755,Reinforced Concrete,Medium,7.64
+575,8,1,Government Office,INF00575,24.33967,98.83792,1964,Poor,4578,Masonry,Medium,6.49
+576,2,1,Water Treatment,INF00576,23.76536,91.39978,2002,Fair,1577,Masonry,Medium,9.26
+577,32,3,Disaster Relief Camp,INF00577,25.46978,95.92981,1970,Critical,3165,Seismically Isolated,Low,4.65
+578,21,2,Hospital,INF00578,24.14324,99.24657,1919,Poor,1598,Seismically Isolated,Low,1.52
+579,5,1,Helipad,INF00579,23.47796,95.28074,2014,Poor,933,Seismically Isolated,High,2.42
+580,61,8,Hospital,INF00580,26.57395,90.07957,1931,Fair,1858,Timber,Low,2.42
+581,17,2,Power Station,INF00581,23.84384,92.89773,1930,Critical,1957,Seismically Isolated,High,3.06
+582,47,6,Telecom Tower,INF00582,29.40062,98.96549,1932,Good,3795,Timber,High,1.27
+583,20,2,Helipad,INF00583,23.05351,93.74812,1983,Fair,390,Masonry,Medium,8.28
+584,49,6,Police Station,INF00584,29.44165,98.78811,2008,Fair,1012,Masonry,Low,8.53
+585,8,1,Hospital,INF00585,24.07575,98.9343,1947,Critical,3677,Reinforced Concrete,Medium,0.45
+586,48,6,Police Station,INF00586,26.58975,94.85334,1926,Critical,4795,Masonry,High,1.4
+587,2,1,Hospital,INF00587,23.80906,91.42748,2014,Fair,4779,Masonry,Negligible,6.26
+588,54,6,Government Office,INF00588,29.55921,91.73732,1922,Good,4403,Masonry,Low,3.74
+589,40,5,Disaster Relief Camp,INF00589,27.76852,97.97834,2005,Critical,4094,Reinforced Concrete,High,9.48
+590,21,2,Police Station,INF00590,23.86545,99.19377,1910,Good,2862,Reinforced Concrete,Low,5.71
+591,46,5,Helipad,INF00591,23.26913,97.57534,1968,Good,3713,Reinforced Concrete,Medium,1.72
+592,60,8,Water Treatment,INF00592,24.58144,96.07638,1952,Poor,360,Masonry,Negligible,8.51
+593,12,1,Water Treatment,INF00593,26.87493,97.95413,1932,Fair,4727,Steel Frame,Negligible,0.77
+594,18,2,Hospital,INF00594,28.71855,98.69798,2013,Fair,3959,Masonry,Medium,7.47
+595,2,1,School,INF00595,23.89953,91.61079,1939,Poor,4117,Reinforced Concrete,Low,8.81
+596,13,2,Police Station,INF00596,26.05088,99.49926,1983,Poor,4110,Masonry,Negligible,7.7
+597,35,4,Power Station,INF00597,22.97419,91.47665,1923,Good,4378,Seismically Isolated,Negligible,1.86
+598,53,6,School,INF00598,27.83046,91.34599,2011,Critical,4900,Seismically Isolated,Low,0.36
+599,32,3,Government Office,INF00599,25.37213,95.5847,1903,Fair,4055,Steel Frame,Low,7.55
+600,60,8,Power Station,INF00600,24.81589,95.74303,1942,Critical,1491,Steel Frame,Low,8.66
+601,18,2,Government Office,INF00601,29.10997,98.52539,1959,Good,1519,Timber,High,3.37
+602,38,4,Hospital,INF00602,29.9643,98.64126,1938,Good,4169,Steel Frame,Medium,2.74
+603,9,1,Helipad,INF00603,27.42894,93.51853,1986,Fair,2373,Masonry,Low,6.16
+604,58,7,Telecom Tower,INF00604,26.92531,94.60267,1973,Good,100,Reinforced Concrete,Negligible,9.5
+605,30,3,Telecom Tower,INF00605,25.6832,92.78736,1907,Fair,1230,Masonry,High,8.07
+606,44,5,Hospital,INF00606,29.58136,98.44735,2023,Fair,1508,Masonry,Medium,7.36
+607,36,4,Government Office,INF00607,25.52303,90.70842,1901,Poor,307,Steel Frame,Negligible,0.2
+608,58,7,Helipad,INF00608,27.00996,94.52286,1917,Poor,1181,Seismically Isolated,Medium,2.05
+609,7,1,Hospital,INF00609,26.16312,92.26792,1966,Poor,4536,Steel Frame,High,4.34
+610,56,7,Telecom Tower,INF00610,29.44051,97.29885,1907,Critical,3873,Seismically Isolated,Medium,4.8
+611,23,3,Water Treatment,INF00611,27.88416,91.84544,1913,Good,1984,Seismically Isolated,Negligible,2.09
+612,39,4,Power Station,INF00612,27.35702,91.41295,1905,Critical,4784,Reinforced Concrete,High,2.5
+613,46,5,Hospital,INF00613,22.92707,97.45628,2010,Poor,1967,Steel Frame,Low,6.39
+614,56,7,School,INF00614,29.36591,97.61591,1999,Poor,4771,Reinforced Concrete,Low,6.11
+615,11,1,School,INF00615,22.67633,91.0565,1965,Good,652,Seismically Isolated,High,2.56
+616,34,4,Government Office,INF00616,25.66172,97.38341,1966,Fair,4016,Steel Frame,Negligible,2.35
+617,10,1,Hospital,INF00617,23.6965,97.6901,1973,Poor,3024,Seismically Isolated,High,1.89
+618,25,3,Telecom Tower,INF00618,26.38609,96.8932,2021,Fair,4003,Reinforced Concrete,High,5.62
+619,22,2,Police Station,INF00619,22.59704,96.4115,1936,Fair,3926,Timber,Medium,6.85
+620,44,5,Disaster Relief Camp,INF00620,29.28209,98.71695,1914,Fair,4393,Reinforced Concrete,Medium,1.72
+621,5,1,Police Station,INF00621,23.93178,95.20707,1974,Critical,4959,Masonry,High,5.78
+622,22,2,Government Office,INF00622,22.84221,96.20712,1913,Critical,4613,Masonry,Negligible,0.39
+623,36,4,Police Station,INF00623,25.15271,90.33711,1902,Fair,450,Steel Frame,Low,5.96
+624,6,1,Helipad,INF00624,26.67734,97.37556,1984,Good,345,Seismically Isolated,Negligible,8.36
+625,53,6,Government Office,INF00625,28.06886,91.54456,1952,Good,98,Reinforced Concrete,Low,1.52
+626,13,2,Power Station,INF00626,26.41362,99.83117,2021,Good,277,Timber,Negligible,4.91
+627,44,5,Hospital,INF00627,29.17248,98.53857,2006,Fair,1996,Steel Frame,Negligible,1.29
+628,55,7,Water Treatment,INF00628,29.19285,94.43061,1909,Critical,4595,Steel Frame,Negligible,3.29
+629,21,2,Government Office,INF00629,24.20159,99.41397,1900,Poor,4326,Steel Frame,High,7.16
+630,41,5,Disaster Relief Camp,INF00630,22.87977,94.3692,2017,Poor,2320,Masonry,Medium,4.96
+631,51,6,Power Station,INF00631,29.63738,90.83225,1949,Fair,44,Reinforced Concrete,Medium,4.91
+632,60,8,Helipad,INF00632,24.70244,96.14838,1916,Good,173,Timber,Medium,7.27
+633,24,3,Police Station,INF00633,24.15854,99.29162,1991,Poor,1620,Seismically Isolated,Medium,2.19
+634,20,2,Hospital,INF00634,23.57076,93.4635,1903,Fair,1639,Reinforced Concrete,High,9.01
+635,2,1,Hospital,INF00635,23.78389,91.28143,2023,Poor,2531,Seismically Isolated,Low,8.31
+636,30,3,Helipad,INF00636,25.85471,92.78106,1972,Poor,739,Masonry,Low,2.15
+637,51,6,Government Office,INF00637,29.45258,90.77019,1933,Fair,723,Steel Frame,Negligible,3.16
+638,14,2,Disaster Relief Camp,INF00638,22.686,92.77217,1933,Good,1598,Masonry,Negligible,7.12
+639,16,2,Helipad,INF00639,23.56948,90.82663,1926,Fair,3364,Reinforced Concrete,Low,9.54
+640,58,7,Water Treatment,INF00640,27.45987,94.34998,1965,Poor,11,Reinforced Concrete,High,1.03
+641,28,3,Government Office,INF00641,29.15028,93.22382,1951,Fair,2206,Timber,Low,7.9
+642,12,1,Police Station,INF00642,27.01236,97.83961,1993,Good,1762,Steel Frame,Low,7.89
+643,1,1,School,INF00643,27.10066,90.32497,1941,Fair,3958,Seismically Isolated,Medium,9.59
+644,18,2,Disaster Relief Camp,INF00644,28.90744,98.452,2012,Poor,159,Reinforced Concrete,High,6.33
+645,29,3,Police Station,INF00645,26.22933,98.67545,1998,Poor,2931,Steel Frame,High,7.15
+646,21,2,School,INF00646,24.16191,99.61628,2005,Good,1003,Reinforced Concrete,Negligible,6.67
+647,43,5,School,INF00647,29.92023,97.44229,1929,Critical,3840,Masonry,Medium,2.56
+648,12,1,Hospital,INF00648,27.09738,98.13125,1950,Critical,4301,Masonry,High,2.84
+649,22,2,Disaster Relief Camp,INF00649,22.56263,96.10391,2023,Critical,489,Masonry,Negligible,3.79
+650,1,1,School,INF00650,27.00841,90.23592,1938,Poor,4071,Seismically Isolated,Negligible,3.4
+651,44,5,Disaster Relief Camp,INF00651,29.1332,99.00512,1927,Critical,521,Timber,Medium,5.15
+652,45,5,Government Office,INF00652,28.52105,95.25648,1910,Poor,3782,Reinforced Concrete,Negligible,4.52
+653,4,1,School,INF00653,26.60231,90.06225,1968,Good,4227,Steel Frame,High,8.05
+654,33,4,Government Office,INF00654,23.99614,99.77222,2016,Good,2765,Seismically Isolated,Negligible,5.16
+655,39,4,Telecom Tower,INF00655,27.61483,91.07686,1974,Good,1782,Reinforced Concrete,High,7.78
+656,22,2,Hospital,INF00656,22.61334,96.2212,1904,Good,2685,Timber,Medium,7.03
+657,27,3,Water Treatment,INF00657,25.44853,90.4869,1962,Poor,3141,Reinforced Concrete,High,2.52
+658,49,6,Police Station,INF00658,29.22447,98.56777,2023,Fair,859,Reinforced Concrete,Medium,2.06
+659,21,2,Helipad,INF00659,23.9391,99.20873,1988,Critical,4390,Masonry,Low,3.32
+660,12,1,Disaster Relief Camp,INF00660,26.99739,98.29438,2007,Fair,4042,Masonry,High,9.21
+661,24,3,Hospital,INF00661,24.1664,99.25976,1931,Fair,2042,Masonry,Low,8.03
+662,46,5,Power Station,INF00662,23.3121,97.49261,1978,Good,3329,Timber,Low,1.08
+663,34,4,Hospital,INF00663,26.24215,97.69249,1963,Critical,2445,Timber,Medium,6.61
+664,49,6,Police Station,INF00664,29.17724,98.91058,1949,Good,201,Masonry,Low,3.48
+665,43,5,Police Station,INF00665,29.48532,97.55186,2009,Good,474,Seismically Isolated,Medium,2.98
+666,40,5,Water Treatment,INF00666,27.9131,97.93438,1916,Poor,919,Reinforced Concrete,High,6.06
+667,50,6,Disaster Relief Camp,INF00667,23.99823,92.21358,1906,Fair,3002,Masonry,Low,8.11
+668,56,7,Water Treatment,INF00668,29.50611,97.36054,1907,Critical,4364,Seismically Isolated,Low,8.14
+669,50,6,Telecom Tower,INF00669,24.20947,92.69576,1926,Fair,3164,Seismically Isolated,High,3.72
+670,12,1,Police Station,INF00670,26.84384,98.34407,1930,Critical,1494,Steel Frame,Medium,1.32
+671,51,6,Hospital,INF00671,29.65105,90.92246,1981,Fair,968,Reinforced Concrete,Low,3.9
+672,28,3,School,INF00672,29.05802,93.1078,1948,Poor,3462,Timber,Medium,6.02
+673,55,7,Disaster Relief Camp,INF00673,29.20047,94.47993,1916,Poor,4486,Timber,Low,8.04
+674,6,1,Government Office,INF00674,26.40199,97.04375,1978,Fair,929,Masonry,High,1.15
+675,46,5,Disaster Relief Camp,INF00675,22.96566,97.57857,2020,Fair,2444,Masonry,High,2.82
+676,9,1,Water Treatment,INF00676,27.64792,93.10452,1947,Fair,3955,Masonry,High,9.51
+677,57,7,School,INF00677,23.63015,93.25381,1962,Critical,1545,Seismically Isolated,Low,1.24
+678,42,5,Government Office,INF00678,22.12338,97.18233,1922,Poor,4691,Steel Frame,High,7.79
+679,48,6,School,INF00679,26.58547,94.69276,1975,Fair,1749,Reinforced Concrete,Low,9.79
+680,44,5,Hospital,INF00680,29.05088,98.96666,1973,Good,1770,Seismically Isolated,Medium,6.97
+681,4,1,School,INF00681,27.02248,90.05102,1919,Critical,2489,Seismically Isolated,Low,5.66
+682,24,3,Water Treatment,INF00682,23.87253,99.1964,1935,Good,3800,Masonry,High,5.9
+683,50,6,Disaster Relief Camp,INF00683,23.69594,92.16616,1952,Critical,562,Masonry,High,4.55
+684,43,5,Telecom Tower,INF00684,29.88184,97.77138,1947,Poor,1287,Seismically Isolated,Medium,6.14
+685,8,1,Disaster Relief Camp,INF00685,24.47766,98.64298,1949,Critical,2260,Reinforced Concrete,Low,4.42
+686,12,1,School,INF00686,26.9169,98.0068,1927,Good,4018,Timber,Negligible,2.01
+687,47,6,Police Station,INF00687,29.85049,99.36216,1971,Critical,1228,Steel Frame,Medium,8.27
+688,43,5,School,INF00688,29.73645,97.59261,1989,Fair,2442,Masonry,Negligible,0.98
+689,61,8,Hospital,INF00689,26.87135,90.24657,2022,Critical,2171,Reinforced Concrete,Medium,7.88
+690,34,4,Helipad,INF00690,26.1592,97.31988,1961,Poor,2576,Timber,Low,4.95
+691,34,4,Helipad,INF00691,25.83887,97.32915,1920,Good,1515,Seismically Isolated,Negligible,1.79
+692,48,6,Hospital,INF00692,26.57539,95.04865,2015,Fair,4631,Steel Frame,Negligible,7.33
+693,47,6,Telecom Tower,INF00693,29.6051,99.02173,1968,Good,569,Seismically Isolated,Low,9.38
+694,11,1,Power Station,INF00694,22.83316,90.82103,1922,Critical,881,Steel Frame,Low,7.59
+695,38,4,Police Station,INF00695,29.5161,98.52492,1914,Fair,328,Masonry,Negligible,8.59
+696,43,5,Disaster Relief Camp,INF00696,29.59916,97.64654,1997,Good,1211,Timber,Low,0.42
+697,22,2,Water Treatment,INF00697,22.75981,96.46277,1909,Fair,2958,Seismically Isolated,High,4.41
+698,52,6,Water Treatment,INF00698,28.80754,99.71038,2007,Fair,3262,Masonry,Medium,2.88
+699,33,4,Government Office,INF00699,23.4813,100.01668,1911,Poor,509,Seismically Isolated,Medium,3.33
+700,59,8,School,INF00700,25.35453,92.21699,2019,Fair,4628,Seismically Isolated,High,6.34
+701,2,1,Hospital,INF00701,24.22168,91.42166,2021,Critical,2043,Steel Frame,Medium,5.53
+702,15,2,Water Treatment,INF00702,27.19437,98.42773,1928,Poor,1718,Steel Frame,Low,1.39
+703,60,8,Helipad,INF00703,24.90944,95.99884,1940,Poor,1667,Reinforced Concrete,High,3.54
+704,34,4,Hospital,INF00704,25.78515,97.49846,1983,Poor,1372,Timber,High,5.05
+705,36,4,School,INF00705,25.55923,90.34168,1979,Critical,2347,Reinforced Concrete,Medium,6.53
+706,39,4,Disaster Relief Camp,INF00706,27.16315,90.84926,1919,Good,3244,Reinforced Concrete,Medium,2.8
+707,29,3,Telecom Tower,INF00707,25.94476,99.03565,1913,Poor,1511,Reinforced Concrete,Negligible,7.96
+708,6,1,Disaster Relief Camp,INF00708,26.54468,97.02011,1923,Poor,4040,Masonry,Negligible,1.57
+709,22,2,School,INF00709,22.84227,96.27921,1946,Critical,3396,Reinforced Concrete,Medium,1.23
+710,43,5,Government Office,INF00710,29.91705,97.70755,1997,Fair,2497,Seismically Isolated,Low,6.24
+711,61,8,Telecom Tower,INF00711,26.73974,89.84168,1964,Poor,3491,Timber,Medium,1.96
+712,1,1,Government Office,INF00712,27.02303,90.10978,1910,Good,2045,Seismically Isolated,High,7.0
+713,30,3,Power Station,INF00713,25.55784,92.56703,1918,Fair,4734,Masonry,Low,2.32
+714,41,5,Government Office,INF00714,22.77812,94.1525,1952,Poor,1042,Reinforced Concrete,High,2.64
+715,4,1,Disaster Relief Camp,INF00715,26.56797,90.54182,2001,Fair,624,Seismically Isolated,Medium,6.83
+716,42,5,Disaster Relief Camp,INF00716,21.85738,97.4926,1922,Critical,3209,Steel Frame,Low,4.27
+717,57,7,Police Station,INF00717,23.7913,93.26045,2014,Good,4294,Steel Frame,Negligible,0.71
+718,62,8,Police Station,INF00718,26.89574,92.14513,1962,Good,3482,Seismically Isolated,High,4.75
+719,26,3,Power Station,INF00719,23.92176,90.35178,1928,Fair,1182,Seismically Isolated,Negligible,7.69
+720,11,1,School,INF00720,22.73864,90.99878,1998,Fair,3687,Steel Frame,Medium,3.04
+721,42,5,Power Station,INF00721,21.97251,96.95091,1966,Good,2111,Masonry,High,3.09
+722,12,1,Water Treatment,INF00722,26.66991,98.0544,1985,Good,1516,Reinforced Concrete,Low,7.85
+723,27,3,Helipad,INF00723,25.21595,90.8134,1908,Fair,3682,Seismically Isolated,Negligible,6.58
+724,62,8,Telecom Tower,INF00724,27.27265,92.20892,2004,Good,4834,Seismically Isolated,Medium,4.02
+725,14,2,Police Station,INF00725,22.56597,93.20514,1929,Critical,1888,Masonry,High,5.6
+726,16,2,Water Treatment,INF00726,23.38616,90.57528,1958,Good,4904,Steel Frame,High,6.17
+727,11,1,Helipad,INF00727,22.45595,90.86839,2017,Fair,544,Steel Frame,Negligible,5.44
+728,41,5,Water Treatment,INF00728,23.18429,94.42493,1995,Poor,4129,Reinforced Concrete,Medium,2.97
+729,36,4,Telecom Tower,INF00729,25.46994,90.47467,1928,Good,3482,Timber,High,5.36
+730,60,8,Telecom Tower,INF00730,24.73921,95.86499,1943,Good,3721,Steel Frame,Medium,1.43
+731,19,2,Disaster Relief Camp,INF00731,24.27778,96.17678,2007,Fair,2218,Steel Frame,Low,4.16
+732,39,4,Government Office,INF00732,27.28525,90.92538,1959,Critical,4992,Masonry,Negligible,2.05
+733,9,1,Water Treatment,INF00733,27.86428,93.17936,1909,Poor,1560,Seismically Isolated,Medium,7.16
+734,48,6,School,INF00734,26.67413,95.11924,1922,Good,18,Steel Frame,Medium,2.55
+735,3,1,Police Station,INF00735,27.28837,98.71572,1979,Poor,2308,Masonry,Medium,5.84
+736,23,3,School,INF00736,27.59298,91.74697,1903,Critical,349,Masonry,Negligible,6.83
+737,5,1,School,INF00737,23.60717,95.29064,1952,Poor,3005,Timber,Negligible,6.68
+738,16,2,Power Station,INF00738,23.68891,90.79645,1964,Poor,3516,Masonry,Low,7.28
+739,48,6,Water Treatment,INF00739,26.68784,94.81446,1934,Good,4348,Masonry,Negligible,3.51
+740,20,2,School,INF00740,23.34223,93.72937,2010,Good,4197,Seismically Isolated,Low,3.44
+741,3,1,Disaster Relief Camp,INF00741,27.43558,99.11388,1997,Poor,2594,Steel Frame,High,9.51
+742,8,1,Police Station,INF00742,24.34349,98.53196,2019,Critical,2410,Timber,Negligible,6.06
+743,18,2,Police Station,INF00743,28.89763,98.59137,1916,Critical,43,Timber,High,0.91
+744,34,4,School,INF00744,26.14524,97.43113,1986,Poor,3874,Reinforced Concrete,Negligible,8.57
+745,44,5,Government Office,INF00745,29.38767,98.8753,1952,Fair,1341,Steel Frame,High,6.66
+746,50,6,Hospital,INF00746,23.96088,92.5143,1904,Fair,2309,Timber,High,4.71
+747,56,7,Helipad,INF00747,29.45849,97.31314,1918,Poor,1891,Steel Frame,Negligible,6.32
+748,50,6,Power Station,INF00748,23.96878,92.25512,1989,Poor,388,Steel Frame,High,3.27
+749,48,6,Helipad,INF00749,26.86277,95.088,1920,Critical,791,Steel Frame,Low,2.14
+750,5,1,Hospital,INF00750,23.47857,94.75407,1927,Poor,91,Reinforced Concrete,Medium,9.07
+751,61,8,Police Station,INF00751,26.42188,90.22772,1995,Good,2621,Steel Frame,Medium,0.32
+752,57,7,Hospital,INF00752,23.57124,93.0275,1957,Critical,2780,Timber,Low,0.99
+753,5,1,Hospital,INF00753,23.62039,94.8478,1983,Fair,2709,Reinforced Concrete,Low,3.43
+754,35,4,Hospital,INF00754,23.3894,91.78405,1957,Critical,3065,Reinforced Concrete,High,2.2
+755,15,2,Hospital,INF00755,27.22555,98.63447,2014,Fair,4454,Seismically Isolated,Medium,4.01
+756,59,8,Disaster Relief Camp,INF00756,25.79072,92.45268,1944,Fair,454,Masonry,Low,7.89
+757,57,7,Government Office,INF00757,23.37038,93.24638,1968,Good,782,Masonry,Low,1.7
+758,1,1,Power Station,INF00758,27.321,90.2869,1932,Poor,3820,Masonry,High,9.12
+759,60,8,Telecom Tower,INF00759,24.81776,95.86743,1925,Poor,2836,Steel Frame,High,0.96
+760,5,1,Telecom Tower,INF00760,23.84683,95.23015,1997,Poor,4385,Seismically Isolated,High,2.01
+761,8,1,Police Station,INF00761,23.9668,98.59446,1929,Good,2274,Reinforced Concrete,High,3.91
+762,17,2,Water Treatment,INF00762,23.94322,92.82323,1925,Poor,803,Seismically Isolated,Low,0.05
+763,24,3,Government Office,INF00763,24.17883,99.46123,2012,Fair,2198,Masonry,Medium,0.07
+764,49,6,Water Treatment,INF00764,29.43631,98.73771,1969,Good,4059,Reinforced Concrete,Medium,9.52
+765,27,3,Hospital,INF00765,25.20179,90.51201,2018,Fair,4640,Steel Frame,High,1.34
+766,26,3,Telecom Tower,INF00766,23.61593,90.52303,1955,Poor,2209,Masonry,Medium,7.04
+767,11,1,Disaster Relief Camp,INF00767,22.76088,90.68739,1909,Poor,4337,Masonry,Negligible,7.39
+768,42,5,Helipad,INF00768,22.03378,96.96042,1956,Fair,3856,Seismically Isolated,Negligible,8.23
+769,61,8,Hospital,INF00769,26.44547,90.00507,1955,Fair,3201,Masonry,Negligible,4.22
+770,17,2,Power Station,INF00770,23.86296,92.85197,1920,Good,4663,Steel Frame,Medium,6.24
+771,37,4,Telecom Tower,INF00771,26.84896,94.93557,2005,Poor,2379,Masonry,High,8.57
+772,23,3,Hospital,INF00772,28.10214,91.48767,2019,Good,2611,Masonry,Low,6.24
+773,47,6,Disaster Relief Camp,INF00773,29.56645,99.44317,2015,Critical,4776,Reinforced Concrete,High,8.25
+774,50,6,Water Treatment,INF00774,23.79833,92.52346,1955,Critical,1101,Steel Frame,Medium,8.92
+775,22,2,Disaster Relief Camp,INF00775,22.4612,96.58888,1974,Critical,2052,Timber,High,0.62
+776,12,1,Government Office,INF00776,27.00495,98.31568,1946,Good,2872,Steel Frame,Negligible,9.54
+777,26,3,Hospital,INF00777,23.89843,90.34191,1998,Critical,4344,Steel Frame,Low,6.58
+778,26,3,Helipad,INF00778,24.10852,90.55622,1970,Critical,781,Masonry,High,5.32
+779,24,3,Telecom Tower,INF00779,24.41175,98.99661,1964,Critical,323,Seismically Isolated,Negligible,9.82
+780,13,2,School,INF00780,26.56872,99.68814,1991,Fair,854,Timber,High,3.11
+781,12,1,School,INF00781,26.55298,98.00403,1903,Good,3337,Timber,Low,2.97
+782,13,2,Government Office,INF00782,26.50404,99.98859,1937,Poor,4854,Reinforced Concrete,Medium,5.13
+783,57,7,Government Office,INF00783,23.48923,92.97914,1936,Good,4424,Steel Frame,High,2.19
+784,42,5,Telecom Tower,INF00784,22.24948,97.39888,1966,Critical,359,Timber,High,3.69
+785,25,3,Government Office,INF00785,26.63907,97.11404,1927,Poor,2429,Masonry,Low,7.29
+786,58,7,School,INF00786,26.99341,94.25181,1974,Poor,2104,Steel Frame,Low,1.26
+787,42,5,Water Treatment,INF00787,21.99704,97.22642,1937,Good,103,Timber,High,9.04
+788,4,1,School,INF00788,26.58079,90.44003,1986,Critical,1415,Masonry,Negligible,5.28
+789,23,3,Disaster Relief Camp,INF00789,27.87885,91.44349,1928,Fair,2375,Masonry,Medium,7.55
+790,45,5,School,INF00790,28.7596,94.91061,1995,Fair,1506,Timber,High,1.59
+791,8,1,Power Station,INF00791,24.24299,98.45951,1972,Fair,630,Steel Frame,Medium,0.39
+792,54,6,School,INF00792,29.6813,91.5863,1910,Poor,3634,Steel Frame,High,8.57
+793,31,3,Helipad,INF00793,27.7559,95.54738,1906,Fair,4133,Timber,Low,8.32
+794,56,7,Telecom Tower,INF00794,29.58359,97.63442,1926,Critical,1059,Masonry,Medium,1.71
+795,27,3,Water Treatment,INF00795,25.09166,90.808,1993,Fair,3257,Seismically Isolated,High,2.94
+796,26,3,Police Station,INF00796,23.74392,90.06373,1919,Poor,1147,Steel Frame,High,1.97
+797,56,7,Police Station,INF00797,29.37732,97.5193,2000,Critical,3358,Reinforced Concrete,Low,2.99
+798,50,6,Police Station,INF00798,23.67838,92.17521,1907,Critical,584,Masonry,Negligible,8.88
+799,23,3,Helipad,INF00799,27.99045,91.7697,2016,Good,3337,Reinforced Concrete,High,4.11
+800,5,1,Government Office,INF00800,23.83795,95.1844,1951,Fair,4111,Masonry,Negligible,7.37
+801,26,3,Water Treatment,INF00801,23.98945,90.54108,1909,Critical,2913,Steel Frame,Negligible,0.34
+802,62,8,Government Office,INF00802,26.95047,92.2552,1963,Fair,3515,Steel Frame,High,4.24
+803,30,3,Government Office,INF00803,25.66294,92.59743,1911,Critical,4987,Reinforced Concrete,Medium,3.12
+804,4,1,Telecom Tower,INF00804,26.98707,90.43784,1976,Poor,1077,Timber,High,5.82
+805,36,4,Police Station,INF00805,25.1942,90.5345,1929,Critical,4686,Seismically Isolated,Low,8.04
+806,50,6,Government Office,INF00806,23.74067,92.44889,1972,Poor,2005,Seismically Isolated,High,2.23
+807,36,4,Telecom Tower,INF00807,25.31128,90.85388,1900,Good,141,Seismically Isolated,High,1.52
+808,45,5,Water Treatment,INF00808,28.96223,94.89212,1987,Good,421,Steel Frame,Negligible,8.51
+809,49,6,Government Office,INF00809,29.38687,98.94153,2004,Fair,2767,Masonry,Low,2.77
+810,22,2,Water Treatment,INF00810,22.39406,96.52046,1931,Good,3855,Steel Frame,Negligible,0.11
+811,54,6,School,INF00811,29.66772,91.59466,1933,Critical,801,Steel Frame,Medium,1.34
+812,26,3,Water Treatment,INF00812,23.84081,90.52717,1992,Good,1524,Timber,Negligible,8.72
+813,23,3,Government Office,INF00813,27.55986,91.38101,1946,Poor,2278,Timber,Medium,6.77
+814,19,2,Water Treatment,INF00814,23.95683,96.2168,1927,Fair,4882,Timber,Medium,8.89
+815,49,6,Government Office,INF00815,29.56741,98.51366,1904,Good,4975,Reinforced Concrete,High,1.79
+816,60,8,Telecom Tower,INF00816,24.69953,95.79345,2006,Fair,2447,Reinforced Concrete,High,0.62
+817,55,7,Helipad,INF00817,28.74963,94.11526,2002,Poor,824,Steel Frame,Negligible,5.4
+818,55,7,Water Treatment,INF00818,29.0002,94.4538,2006,Critical,2388,Timber,Negligible,4.09
+819,60,8,School,INF00819,24.92985,95.89868,1991,Poor,2185,Timber,Low,5.88
+820,30,3,School,INF00820,25.49486,92.47653,1902,Critical,3723,Masonry,Low,2.97
+821,8,1,Power Station,INF00821,24.32505,98.51982,1909,Critical,3535,Timber,High,6.22
+822,38,4,Water Treatment,INF00822,29.4772,98.76764,2017,Poor,1121,Masonry,High,9.45
+823,55,7,Disaster Relief Camp,INF00823,28.68766,94.35045,1978,Poor,2079,Reinforced Concrete,Medium,1.1
+824,60,8,Disaster Relief Camp,INF00824,24.56981,95.87162,2016,Fair,4753,Reinforced Concrete,High,4.35
+825,33,4,Police Station,INF00825,23.8323,100.13763,1933,Good,488,Reinforced Concrete,Low,4.85
+826,25,3,School,INF00826,26.58765,97.14398,1996,Good,4036,Masonry,High,9.65
+827,17,2,School,INF00827,23.68874,92.86505,1920,Fair,2059,Masonry,Medium,4.52
+828,46,5,School,INF00828,23.31197,97.41719,1939,Fair,793,Masonry,Low,9.44
+829,54,6,Telecom Tower,INF00829,29.73936,91.38826,1901,Poor,3987,Reinforced Concrete,Negligible,1.0
+830,23,3,Disaster Relief Camp,INF00830,27.69019,91.33522,1978,Good,4775,Timber,High,2.44
+831,49,6,Police Station,INF00831,29.36829,98.69865,1996,Poor,1287,Timber,Low,0.16
+832,16,2,Helipad,INF00832,23.56012,90.77268,2013,Poor,1424,Steel Frame,High,6.61
+833,31,3,Water Treatment,INF00833,27.93421,95.65555,1966,Good,3940,Steel Frame,Low,5.21
+834,12,1,Police Station,INF00834,26.93549,98.22948,1906,Fair,4613,Timber,Medium,4.82
+835,10,1,Government Office,INF00835,23.49503,97.82749,1945,Poor,1574,Timber,High,2.6
+836,41,5,Water Treatment,INF00836,23.01763,94.12177,1937,Good,1392,Timber,High,8.24
+837,30,3,Water Treatment,INF00837,25.82647,92.56693,1973,Fair,3060,Reinforced Concrete,Medium,2.25
+838,47,6,Police Station,INF00838,29.40811,99.44129,1915,Poor,4097,Masonry,Low,9.49
+839,14,2,Water Treatment,INF00839,22.83995,92.77191,1916,Fair,4058,Timber,Low,3.41
+840,44,5,Disaster Relief Camp,INF00840,29.42626,98.4497,1947,Good,3419,Steel Frame,Medium,9.65
+841,28,3,Government Office,INF00841,29.18544,93.23555,1976,Fair,4069,Reinforced Concrete,Negligible,0.8
+842,34,4,School,INF00842,25.77221,97.76292,1914,Good,3886,Timber,High,0.61
+843,25,3,Helipad,INF00843,26.48567,96.69621,1959,Fair,3900,Masonry,Low,1.14
+844,12,1,Government Office,INF00844,26.87602,97.96611,1968,Good,138,Seismically Isolated,Negligible,4.36
+845,19,2,Government Office,INF00845,23.97446,96.14076,1995,Critical,3425,Seismically Isolated,Low,6.94
+846,25,3,School,INF00846,26.24074,96.83393,1988,Fair,1261,Seismically Isolated,Low,7.56
+847,58,7,Helipad,INF00847,26.9896,94.13334,1959,Critical,2041,Seismically Isolated,High,4.36
+848,26,3,Helipad,INF00848,23.94577,90.39695,1921,Poor,213,Steel Frame,High,3.68
+849,29,3,Hospital,INF00849,26.12414,98.99098,1932,Critical,3282,Seismically Isolated,Medium,5.69
+850,12,1,Government Office,INF00850,26.8543,97.90461,2003,Poor,3567,Seismically Isolated,High,6.08
+851,41,5,Water Treatment,INF00851,22.71849,94.27688,2005,Fair,1961,Reinforced Concrete,Negligible,6.76
+852,11,1,Power Station,INF00852,22.76647,90.87733,2008,Fair,50,Seismically Isolated,Negligible,2.42
+853,2,1,Disaster Relief Camp,INF00853,23.90713,91.50051,1958,Good,1953,Steel Frame,High,1.75
+854,54,6,Hospital,INF00854,29.37867,91.49695,2004,Fair,3179,Seismically Isolated,High,5.37
+855,9,1,Police Station,INF00855,27.48295,93.54178,1963,Critical,897,Masonry,Negligible,5.98
+856,25,3,School,INF00856,26.17212,96.78033,1950,Good,881,Steel Frame,Low,8.14
+857,23,3,Helipad,INF00857,27.5439,91.41012,2013,Fair,527,Masonry,Medium,5.39
+858,29,3,Water Treatment,INF00858,25.91528,99.05643,1951,Good,2395,Reinforced Concrete,Medium,8.39
+859,48,6,Police Station,INF00859,26.57363,94.722,2016,Critical,3546,Timber,Medium,5.98
+860,1,1,Water Treatment,INF00860,27.00923,90.00393,2005,Poor,4391,Masonry,Low,2.22
+861,57,7,Police Station,INF00861,23.90203,93.06302,1941,Good,4370,Timber,Negligible,0.54
+862,7,1,Police Station,INF00862,26.36128,92.47251,2006,Good,2727,Seismically Isolated,Medium,2.5
+863,15,2,Government Office,INF00863,26.66726,98.80044,1901,Poor,3100,Timber,Low,7.14
+864,31,3,Helipad,INF00864,28.02136,95.28085,1972,Good,4828,Masonry,Medium,5.66
+865,51,6,Helipad,INF00865,29.75339,90.92784,2010,Poor,4663,Timber,Medium,3.45
+866,32,3,Water Treatment,INF00866,25.2975,96.01075,1969,Good,3919,Masonry,Medium,5.4
+867,44,5,Helipad,INF00867,29.31604,98.74815,1932,Critical,4960,Steel Frame,Medium,4.88
+868,11,1,Power Station,INF00868,22.51166,90.74575,1995,Good,4936,Masonry,Negligible,9.8
+869,42,5,Power Station,INF00869,21.94802,97.44272,1946,Poor,830,Seismically Isolated,Negligible,8.71
+870,18,2,Disaster Relief Camp,INF00870,28.78701,98.78801,1922,Fair,3130,Masonry,Negligible,5.86
+871,35,4,Water Treatment,INF00871,23.01456,91.61981,2003,Critical,249,Steel Frame,Medium,5.18
+872,22,2,Disaster Relief Camp,INF00872,22.43237,96.44329,2018,Fair,4609,Reinforced Concrete,Low,7.36
+873,46,5,School,INF00873,23.2311,97.77186,2001,Poor,2583,Timber,Low,3.27
+874,5,1,Hospital,INF00874,23.61828,94.94435,2023,Good,2721,Masonry,Medium,1.54
+875,43,5,Government Office,INF00875,29.80564,97.68383,1943,Critical,1338,Timber,Low,6.47
+876,54,6,Hospital,INF00876,29.45109,91.70541,1912,Poor,1759,Masonry,High,5.76
+877,3,1,Helipad,INF00877,27.31216,99.19815,1953,Fair,3293,Timber,Negligible,6.84
+878,22,2,Hospital,INF00878,22.50784,96.38512,1907,Poor,4019,Steel Frame,Negligible,3.97
+879,55,7,School,INF00879,29.12369,94.13359,1962,Good,1743,Timber,Low,3.96
+880,38,4,Hospital,INF00880,30.03032,98.90032,1998,Critical,2117,Masonry,High,1.61
+881,33,4,Police Station,INF00881,23.5602,100.16569,1978,Fair,2056,Masonry,High,8.48
+882,58,7,Police Station,INF00882,27.11015,94.66841,1930,Fair,215,Masonry,High,2.3
+883,52,6,School,INF00883,28.76964,99.51511,1947,Critical,87,Reinforced Concrete,Medium,0.09
+884,39,4,Helipad,INF00884,27.46645,91.15169,1921,Critical,2358,Timber,Medium,1.69
+885,16,2,Telecom Tower,INF00885,23.69355,90.63082,2011,Fair,2877,Reinforced Concrete,High,5.91
+886,18,2,Water Treatment,INF00886,28.93079,98.74252,1912,Poor,3422,Seismically Isolated,Low,0.2
+887,26,3,Telecom Tower,INF00887,23.97388,90.47201,1934,Poor,2091,Timber,Low,2.89
+888,46,5,Government Office,INF00888,22.94823,97.6896,2015,Fair,265,Seismically Isolated,Negligible,7.46
+889,40,5,School,INF00889,28.02477,97.4273,1975,Poor,2976,Steel Frame,Negligible,0.4
+890,6,1,Hospital,INF00890,26.27326,97.22006,1952,Fair,420,Reinforced Concrete,Medium,0.79
+891,37,4,School,INF00891,27.02509,94.908,1959,Critical,2603,Steel Frame,High,2.51
+892,4,1,Water Treatment,INF00892,26.90001,90.47042,1902,Poor,1537,Timber,Medium,7.78
+893,17,2,School,INF00893,23.9617,92.62364,1952,Fair,2274,Steel Frame,Medium,0.16
+894,20,2,Telecom Tower,INF00894,23.49047,93.76051,1954,Poor,993,Masonry,Medium,7.9
+895,44,5,Hospital,INF00895,29.08403,98.75076,1963,Critical,3569,Timber,High,0.08
+896,59,8,Power Station,INF00896,25.54613,92.36538,1955,Poor,3191,Timber,High,4.48
+897,29,3,School,INF00897,25.72359,98.88635,1995,Critical,1700,Reinforced Concrete,High,1.79
+898,12,1,Hospital,INF00898,26.95748,98.18857,2000,Fair,2769,Reinforced Concrete,Negligible,6.82
+899,22,2,Telecom Tower,INF00899,22.51391,96.52233,1937,Fair,3550,Steel Frame,Negligible,0.11
+900,58,7,Telecom Tower,INF00900,27.20968,94.25751,1937,Critical,211,Timber,Medium,9.32
+901,36,4,Hospital,INF00901,25.54481,90.70476,1901,Poor,1336,Masonry,High,5.05
+902,34,4,Disaster Relief Camp,INF00902,26.11134,97.374,2002,Fair,491,Timber,High,7.43
+903,58,7,Power Station,INF00903,27.32289,94.22482,1955,Good,2334,Timber,Low,2.15
+904,53,6,Water Treatment,INF00904,28.29814,91.03061,1949,Poor,1055,Reinforced Concrete,Medium,3.96
+905,57,7,Power Station,INF00905,23.34598,93.11792,1908,Fair,38,Reinforced Concrete,High,3.38
+906,44,5,Power Station,INF00906,29.18276,98.92559,1922,Good,320,Masonry,Medium,7.88
+907,19,2,Telecom Tower,INF00907,24.37984,96.42375,1912,Good,4272,Reinforced Concrete,Low,1.94
+908,40,5,Police Station,INF00908,27.75739,97.53747,2002,Good,4263,Steel Frame,High,8.14
+909,6,1,Power Station,INF00909,26.4735,97.0205,1911,Good,497,Reinforced Concrete,Low,2.64
+910,27,3,Water Treatment,INF00910,25.36236,90.93874,1998,Good,2344,Masonry,Medium,0.06
+911,54,6,Power Station,INF00911,29.80346,91.38028,2011,Fair,245,Steel Frame,Negligible,4.65
+912,16,2,Telecom Tower,INF00912,23.47531,90.58269,1900,Fair,4014,Steel Frame,High,2.27
+913,55,7,Power Station,INF00913,29.04307,94.34066,1922,Fair,4463,Masonry,Low,4.7
+914,19,2,Police Station,INF00914,24.25867,96.64733,1998,Good,4754,Steel Frame,High,3.96
+915,33,4,School,INF00915,23.97258,99.8607,1968,Good,3578,Reinforced Concrete,High,9.91
+916,59,8,School,INF00916,25.4457,92.25191,1954,Poor,1597,Seismically Isolated,Negligible,9.59
+917,45,5,Disaster Relief Camp,INF00917,28.82359,95.24449,2004,Good,2288,Steel Frame,High,9.44
+918,11,1,Disaster Relief Camp,INF00918,22.84677,91.03743,1932,Good,117,Masonry,Medium,1.56
+919,14,2,Water Treatment,INF00919,22.45704,92.75898,1953,Fair,3344,Reinforced Concrete,High,1.4
+920,51,6,Hospital,INF00920,29.47633,90.60732,1966,Critical,2613,Reinforced Concrete,Medium,1.44
+921,36,4,Telecom Tower,INF00921,25.25011,90.66124,1962,Good,2260,Steel Frame,Low,0.09
+922,44,5,Disaster Relief Camp,INF00922,29.06877,98.43553,1926,Poor,4618,Steel Frame,Negligible,7.98
+923,57,7,Government Office,INF00923,23.41182,93.41075,1913,Fair,3211,Timber,Low,7.27
+924,44,5,Hospital,INF00924,29.5902,98.92118,1977,Poor,260,Timber,Medium,2.42
+925,47,6,Telecom Tower,INF00925,29.38798,99.27045,1951,Critical,3575,Masonry,Medium,7.72
+926,37,4,Hospital,INF00926,26.63017,94.48485,1955,Good,2631,Steel Frame,Low,7.2
+927,34,4,Helipad,INF00927,25.823,97.36702,2013,Fair,1577,Seismically Isolated,High,3.34
+928,1,1,Disaster Relief Camp,INF00928,26.8465,90.19314,1937,Poor,3371,Reinforced Concrete,Negligible,7.44
+929,41,5,Government Office,INF00929,23.18539,94.2682,2011,Critical,695,Masonry,High,5.78
+930,33,4,Water Treatment,INF00930,23.77869,99.91888,1934,Fair,1602,Reinforced Concrete,Medium,3.27
+931,32,3,Government Office,INF00931,25.45808,95.93791,1928,Critical,2102,Steel Frame,Low,2.62
+932,16,2,Power Station,INF00932,23.36497,90.69697,1911,Poor,1571,Timber,Medium,5.11
+933,12,1,Hospital,INF00933,26.62646,98.05291,1921,Poor,3598,Masonry,High,6.17
+934,26,3,Telecom Tower,INF00934,23.78223,90.31195,2021,Fair,3489,Steel Frame,Low,9.81
+935,60,8,School,INF00935,24.74266,96.0272,1912,Poor,1089,Masonry,Negligible,1.83
+936,41,5,Telecom Tower,INF00936,22.68634,94.08703,2021,Poor,839,Timber,Medium,6.11
+937,32,3,Disaster Relief Camp,INF00937,25.17564,96.11066,1986,Good,1601,Seismically Isolated,Low,0.65
+938,17,2,School,INF00938,23.78246,92.7752,1926,Critical,1590,Steel Frame,Medium,2.13
+939,51,6,School,INF00939,29.66515,90.57798,1931,Good,2212,Seismically Isolated,Low,8.0
+940,17,2,Water Treatment,INF00940,24.02518,92.81666,2009,Good,3696,Masonry,Low,5.85
+941,40,5,Power Station,INF00941,28.03117,97.51882,1965,Fair,4929,Timber,High,8.43
+942,4,1,Government Office,INF00942,26.75393,90.39603,1958,Fair,2041,Timber,Low,3.48
+943,1,1,Telecom Tower,INF00943,27.00822,89.99738,1973,Poor,4042,Masonry,Low,8.41
+944,47,6,School,INF00944,29.43452,99.31126,1964,Good,4041,Masonry,Low,7.88
+945,25,3,Helipad,INF00945,26.32278,96.69142,1993,Critical,1069,Steel Frame,Low,6.47
+946,54,6,Helipad,INF00946,29.40196,91.41476,1918,Good,2910,Timber,High,8.87
+947,43,5,Water Treatment,INF00947,29.77766,97.58493,2018,Poor,1613,Masonry,Negligible,2.92
+948,39,4,Helipad,INF00948,27.41293,91.2457,1938,Critical,1885,Timber,Negligible,1.32
+949,3,1,Police Station,INF00949,27.22306,98.97005,2007,Good,3673,Seismically Isolated,Low,7.89
+950,41,5,Government Office,INF00950,23.0647,94.22888,1959,Fair,2735,Seismically Isolated,High,6.26
+951,21,2,School,INF00951,24.37086,99.13351,1983,Poor,3855,Steel Frame,Medium,7.71
+952,49,6,Hospital,INF00952,29.21325,98.61587,1995,Fair,2786,Steel Frame,Low,0.46
+953,35,4,Telecom Tower,INF00953,22.94119,91.86806,2014,Good,3441,Masonry,Medium,7.67
+954,58,7,Hospital,INF00954,27.42847,94.30399,1934,Poor,1726,Timber,Medium,1.16
+955,61,8,Telecom Tower,INF00955,26.69636,89.95091,1942,Fair,671,Steel Frame,High,3.84
+956,42,5,Police Station,INF00956,22.0548,97.31282,1941,Good,1506,Reinforced Concrete,Negligible,1.8
+957,28,3,Disaster Relief Camp,INF00957,29.27464,93.26931,1913,Good,190,Timber,Low,2.92
+958,42,5,Police Station,INF00958,21.95316,97.14237,1982,Poor,60,Timber,High,8.8
+959,33,4,Government Office,INF00959,23.71475,99.74534,1941,Good,2772,Seismically Isolated,High,9.44
+960,58,7,Telecom Tower,INF00960,27.20984,94.30235,2010,Critical,4865,Timber,Negligible,2.33
+961,44,5,Helipad,INF00961,29.44376,98.5544,1946,Fair,3485,Masonry,Medium,1.47
+962,42,5,Government Office,INF00962,22.08191,97.10353,1910,Poor,3179,Steel Frame,Negligible,5.44
+963,10,1,Power Station,INF00963,23.53829,97.81666,1992,Good,2706,Timber,Negligible,4.54
+964,7,1,Police Station,INF00964,26.55926,92.40265,1963,Fair,2074,Masonry,Medium,6.15
+965,30,3,Police Station,INF00965,25.7641,92.86537,1968,Poor,2766,Timber,Low,5.87
+966,36,4,Water Treatment,INF00966,25.20169,90.72106,1906,Poor,3562,Masonry,Medium,7.48
+967,16,2,Power Station,INF00967,23.67139,90.80547,1997,Good,3419,Seismically Isolated,High,6.81
+968,11,1,Helipad,INF00968,22.97151,90.79206,1973,Fair,2116,Masonry,High,6.36
+969,31,3,Power Station,INF00969,28.24058,95.68337,1935,Good,1550,Seismically Isolated,Low,4.96
+970,3,1,Helipad,INF00970,27.6421,98.99228,1932,Fair,4272,Steel Frame,Negligible,0.12
+971,10,1,Water Treatment,INF00971,23.61439,97.78139,1912,Good,4390,Masonry,Medium,2.48
+972,11,1,Disaster Relief Camp,INF00972,22.45965,90.67877,1994,Good,1537,Timber,Medium,7.46
+973,62,8,Disaster Relief Camp,INF00973,26.77718,92.02659,1995,Fair,312,Seismically Isolated,High,4.85
+974,21,2,Telecom Tower,INF00974,24.16146,99.0711,2022,Fair,1553,Reinforced Concrete,Low,0.78
+975,52,6,Police Station,INF00975,28.79445,99.70018,2012,Good,4593,Steel Frame,Negligible,3.74
+976,23,3,Disaster Relief Camp,INF00976,27.89431,91.92053,1903,Good,3442,Reinforced Concrete,Low,5.65
+977,14,2,Hospital,INF00977,22.37687,92.82747,1983,Fair,4774,Reinforced Concrete,High,1.78
+978,20,2,Hospital,INF00978,23.18563,93.83981,1984,Good,1299,Steel Frame,Low,4.92
+979,41,5,Police Station,INF00979,22.87567,94.16321,1967,Poor,2234,Reinforced Concrete,Negligible,7.87
+980,43,5,Helipad,INF00980,30.07297,97.6252,1971,Poor,4468,Seismically Isolated,High,5.24
+981,34,4,Water Treatment,INF00981,26.19458,97.68463,2003,Critical,2908,Timber,Negligible,4.29
+982,3,1,Disaster Relief Camp,INF00982,27.18817,98.68066,1922,Critical,3028,Masonry,Negligible,9.47
+983,22,2,Government Office,INF00983,22.44702,96.11489,1968,Fair,1940,Seismically Isolated,Low,5.93
+984,14,2,Water Treatment,INF00984,22.37648,93.09033,1991,Critical,4489,Reinforced Concrete,Negligible,4.15
+985,20,2,Government Office,INF00985,23.50009,93.75995,1978,Good,763,Steel Frame,Medium,3.33
+986,5,1,Helipad,INF00986,23.5209,94.78215,1950,Good,1330,Reinforced Concrete,Low,9.9
+987,51,6,Police Station,INF00987,29.59132,90.63525,2016,Poor,3415,Timber,Negligible,8.43
+988,35,4,Hospital,INF00988,23.40982,91.64003,1925,Poor,54,Masonry,High,8.49
+989,40,5,School,INF00989,27.83679,97.76348,1984,Good,3385,Seismically Isolated,Medium,8.34
+990,15,2,School,INF00990,27.13894,98.49291,1935,Good,4923,Steel Frame,Medium,1.96
+991,31,3,Power Station,INF00991,27.93943,95.2715,1952,Critical,4432,Seismically Isolated,Low,3.43
+992,46,5,School,INF00992,23.44648,97.62829,1997,Good,4457,Masonry,Medium,6.32
+993,14,2,Helipad,INF00993,22.40323,92.69458,1919,Poor,2050,Masonry,High,4.33
+994,41,5,Helipad,INF00994,22.65573,94.24127,1990,Fair,2046,Masonry,High,2.36
+995,54,6,Water Treatment,INF00995,29.85031,91.453,1936,Critical,1702,Reinforced Concrete,Negligible,6.47
+996,53,6,Water Treatment,INF00996,28.1249,91.10063,1974,Good,2872,Reinforced Concrete,Medium,9.77
+997,46,5,Government Office,INF00997,23.20007,97.58984,2015,Fair,640,Reinforced Concrete,Medium,1.85
+998,47,6,Hospital,INF00998,29.33285,99.28725,1997,Good,2908,Steel Frame,Low,2.92
+999,36,4,Water Treatment,INF00999,25.46826,90.60996,2001,Fair,476,Masonry,Negligible,2.81
+1000,8,1,Power Station,INF01000,24.4372,98.57714,1916,Poor,1209,Timber,Medium,1.0

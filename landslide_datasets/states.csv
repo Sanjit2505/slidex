@@ -1,0 +1,9 @@
+state_id,state_name,region,state_code,area_sq_km,population,num_districts,high_landslide_risk
+1,Arunachal Pradesh,NE,AP,83743,1383727,29,True
+2,Assam,NE,AS,78438,31205576,35,True
+3,Manipur,NE,MN,22327,2855794,16,True
+4,Meghalaya,NE,ML,22429,2966889,12,True
+5,Mizoram,NE,MZ,21081,1097206,11,True
+6,Nagaland,NE,NL,16579,1978502,12,True
+7,Sikkim,NE,SK,7096,610577,6,True
+8,Tripura,NE,TR,10486,3673917,8,False
