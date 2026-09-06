@@ -39,15 +39,24 @@ class SpatioTemporalLandslideModel:
         vib_factor = min(1.0, (vibration / 150.0))
         seismic_score = max(seismic_factor, vib_factor)
         
-        # 3. Geotechnical Susceptibility (Slope instability rises steeply past 30°)
-        slope_factor = min(1.0, max(0.0, (slope_angle - 15.0) / 45.0))
+        # 3. Physical Slope Requirement Gate (LANDSLIDES CANNOT OCCUR ON FLAT PLAINS OR CITIES)
+        # Low slope (< 12°) has zero or near-zero landslide physical susceptibility
+        if slope_angle < 12.0:
+            slope_gate = max(0.01, slope_angle / 12.0 * 0.08) # 0.01 - 0.08 max multiplier
+            slope_factor = 0.0
+        elif slope_angle < 20.0:
+            slope_gate = 0.08 + (slope_angle - 12.0) / 8.0 * 0.35 # 0.08 - 0.43
+            slope_factor = (slope_angle - 12.0) / 8.0 * 0.30
+        else:
+            slope_gate = 0.43 + min(0.57, (slope_angle - 20.0) / 25.0 * 0.57) # 0.43 - 1.00
+            slope_factor = min(1.0, (slope_angle - 15.0) / 45.0)
         
-        # Combined Non-linear AI Model score
+        # Combined Non-linear AI Model score, gated strictly by physical slope availability
         raw_ai_score = (
             0.45 * hydro_score +
             0.30 * slope_factor +
             0.25 * seismic_score
-        )
+        ) * slope_gate
         
         # Interaction amplifier (heavy rain on steep slope + vibration)
         interaction = 1.0
@@ -63,6 +72,7 @@ class SpatioTemporalLandslideModel:
             "hydro_score": round(hydro_score, 4),
             "seismic_score": round(seismic_score, 4),
             "slope_factor": round(slope_factor, 4),
+            "slope_gate": round(slope_gate, 4),
             "is_trained": self.is_trained,
             "version": self.model_version
         }
