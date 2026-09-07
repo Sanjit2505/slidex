@@ -30,6 +30,9 @@ def main():
     # auto-capture-analyze
     test_endpoint("POST", "/api/auto-capture-analyze", data={"lat": "30.557", "lon": "79.566", "location_name": "Joshimath"})
 
+    # scan-entire-map
+    test_endpoint("POST", "/api/scan-entire-map", data={"lat": "30.557", "lon": "79.566", "radius_km": "15.0", "grid_size": "3"})
+
     # gee-export-code
     test_endpoint("GET", "/api/gee-export-code?preset_id=uttarakhand_joshimath&sensor=sentinel2_sr")
 

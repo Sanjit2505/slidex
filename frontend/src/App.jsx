@@ -169,9 +169,12 @@ function MapCenterController({ center, zoom }) {
   return null;
 }
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || (typeof window !== 'undefined' && window.location.hostname ? `http://${window.location.hostname}:8000` : "http://127.0.0.1:8000");
 
 export default function App() {
+  // Navigation & Sub-Page State: 'home' | 'map' | 'dashboard' | 'risk_areas' | 'analysis'
+  const [activeTab, setActiveTab] = useState('map');
+
   // Analysis Mode: 'single' | 'temporal'
   const [analysisMode, setAnalysisMode] = useState('single');
 
@@ -212,6 +215,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [mapLayerType, setMapLayerType] = useState('satellite'); // 'satellite' | 'terrain' | 'osm'
+  const [showRiskZones, setShowRiskZones] = useState(true);
 
   // Earth Observation & GEE State
   const [geePresets, setGeePresets] = useState([]);
@@ -223,8 +227,81 @@ export default function App() {
   const [catalogModalOpen, setCatalogModalOpen] = useState(false);
   const [geemapCode, setGeemapCode] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
-  const [autoStatus, setAutoStatus] = useState(null); // { terrain, slope, weatherSrc }
-  const [showRiskZones, setShowRiskZones] = useState(true); // Toggle India hazard zones on map
+  // Map Scanner State
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanResults, setScanResults] = useState(null);
+
+  // Scan entire map region around active location
+  const handleScanEntireMap = async () => {
+    if (!selectedPin) return;
+    setScanLoading(true);
+    setScanResults(null);
+    try {
+      const fd = new FormData();
+      fd.append('lat', selectedPin.lat);
+      fd.append('lon', selectedPin.lng);
+      fd.append('radius_km', 15.0);
+      fd.append('grid_size', 3);
+
+      const res = await fetch(`${API_BASE}/api/scan-entire-map`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setScanResults(data);
+
+      // Automatically switch to Cognitive Studio sub-page & scroll to results
+      setActiveTab('analysis');
+      setTimeout(() => {
+        document.getElementById('analysis-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 250);
+    } catch (err) {
+      console.error("Regional scan failed:", err);
+      alert("Regional Scan failed: " + err.message);
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  // Fetch Satellite imagery & climate data for custom clicked/searched location
+  const fetchCustomSatelliteData = async (lat, lng, locName) => {
+    setGeeLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/gee-capture-custom?lat=${lat}&lon=${lng}&location_name=${encodeURIComponent(locName || 'Selected Location')}`);
+      const data = await res.json();
+      if (data.success) {
+        setGeeData(data);
+        const liveB64 = data.image_base64_post || data.image_base64;
+        const preB64 = data.image_base64_pre || data.image_base64;
+
+        if (liveB64) setSinglePreview(liveB64);
+        if (preB64) setPrePreview(preB64);
+        if (liveB64) setPostPreview(liveB64);
+
+        const liveFile = dataURItoFile(liveB64, `custom_${lat.toFixed(3)}_${lng.toFixed(3)}_live.jpg`);
+        const preFile = dataURItoFile(preB64, `custom_${lat.toFixed(3)}_${lng.toFixed(3)}_historical.jpg`);
+
+        if (liveFile) {
+          setSingleImage(liveFile);
+          setPostImage(liveFile);
+        }
+        if (preFile) {
+          setPreImage(preFile);
+        }
+
+        if (data.env_data) {
+          if (data.env_data.rainfall !== undefined) setRainfall(data.env_data.rainfall);
+          if (data.env_data.vibration !== undefined) setVibration(data.env_data.vibration);
+          if (data.env_data.earthquake_mag !== undefined) setEarthquakeMag(data.env_data.earthquake_mag);
+          if (data.env_data.slope_angle !== undefined) setSlopeAngle(data.env_data.slope_angle);
+          if (data.env_data.soil_moisture !== undefined) setSoilMoisture(data.env_data.soil_moisture);
+          if (data.env_data.location_name) setLocationName(data.env_data.location_name);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch custom satellite data:", err);
+    } finally {
+      setGeeLoading(false);
+    }
+  };
 
   // Search Location via OpenStreetMap Nominatim
   const handleSearchLocation = async (e) => {
@@ -238,10 +315,12 @@ export default function App() {
         const item = data[0];
         const newLat = parseFloat(item.lat);
         const newLon = parseFloat(item.lon);
+        const locName = item.display_name.split(',')[0];
         setMapCenter([newLat, newLon]);
         setMapZoom(12);
-        setSelectedPin({ lat: newLat, lng: newLon, name: item.display_name.split(',')[0] });
+        setSelectedPin({ lat: newLat, lng: newLon, name: locName });
         setLocationName(item.display_name.split(',').slice(0, 3).join(', '));
+        fetchCustomSatelliteData(newLat, newLon, locName);
       } else {
         alert("Location not found. Please try another city, valley, or mountain coordinate.");
       }
@@ -257,8 +336,10 @@ export default function App() {
   const handleMapClick = (lat, lng) => {
     const latFormatted = lat.toFixed(4);
     const lngFormatted = lng.toFixed(4);
-    setSelectedPin({ lat, lng, name: `Sector (${latFormatted}°N, ${lngFormatted}°E)` });
+    const pinName = `Sector (${latFormatted}°N, ${lngFormatted}°E)`;
+    setSelectedPin({ lat, lng, name: pinName });
     setLocationName(`Selected Sector (${latFormatted}°N, ${lngFormatted}°E)`);
+    fetchCustomSatelliteData(lat, lng, pinName);
   };
 
   // Utility: convert a base64 data URI to a File object safely without fetching
@@ -282,22 +363,21 @@ export default function App() {
   };
 
   // Capture & Analyse: fully automated - no sensor selection needed
-  const handleCaptureFromMap = async () => {
-    if (!selectedPin) return;
+  const handleCaptureFromMap = async (customLat, customLng, customName) => {
+    const lat = customLat !== undefined ? customLat : selectedPin?.lat;
+    const lng = customLng !== undefined ? customLng : selectedPin?.lng;
+    const name = customName || selectedPin?.name || locationName;
+    if (lat === undefined || lng === undefined) return;
+
     setGeeLoading(true);
     setAnalysisMode('single');
     setPrediction(null);
     setAutoStatus(null);
     try {
-      // Use the unified auto endpoint that:
-      // 1. Fetches real weather from Open-Meteo API
-      // 2. Auto-estimates terrain/slope from coordinates
-      // 3. Generates dual satellite imagery (historical + live)
-      // 4. Runs full AI cognitive analysis automatically
       const formData = new FormData();
-      formData.append('lat', selectedPin.lat);
-      formData.append('lon', selectedPin.lng);
-      formData.append('location_name', selectedPin.name || locationName);
+      formData.append('lat', lat);
+      formData.append('lon', lng);
+      formData.append('location_name', name);
 
       const res = await fetch(`${API_BASE}/api/auto-capture-analyze`, {
         method: 'POST',
@@ -333,37 +413,35 @@ export default function App() {
       if (liveB64) setSinglePreview(liveB64);
       if (preB64) setPrePreview(preB64);
       if (liveB64) setPostPreview(liveB64);
-      setSingleSlideView('split'); // auto show dual view
+      setSingleSlideView('split');
 
-      // Convert base64 to File objects for future manual analysis
+      // Convert base64 to File objects
       if (liveB64) {
-        const liveFile = dataURItoFile(liveB64, `live_${selectedPin.lat.toFixed(3)}_${selectedPin.lng.toFixed(3)}.jpg`);
+        const liveFile = dataURItoFile(liveB64, `live_${lat.toFixed(3)}_${lng.toFixed(3)}.jpg`);
         if (liveFile) {
           setSingleImage(liveFile);
           setPostImage(liveFile);
         }
       }
       if (preB64) {
-        const preFile = dataURItoFile(preB64, `hist_${selectedPin.lat.toFixed(3)}_${selectedPin.lng.toFixed(3)}.jpg`);
+        const preFile = dataURItoFile(preB64, `hist_${lat.toFixed(3)}_${lng.toFixed(3)}.jpg`);
         if (preFile) {
           setPreImage(preFile);
         }
       }
 
-      // Update environmental data from real weather
       if (data.env_data) {
         setRainfall(data.env_data.rainfall);
         setVibration(data.env_data.vibration);
         setEarthquakeMag(data.env_data.earthquake_mag);
         setSlopeAngle(data.env_data.slope_angle);
         setSoilMoisture(data.env_data.soil_moisture);
-        setLocationName(data.env_data.location_name);
+        setLocationName(data.env_data.location_name || name);
       }
 
-      // Set AI prediction result directly from auto-analyze
       if (data.prediction) {
         const pred = data.prediction;
-        pred.location = data.location;
+        pred.location = data.location || name;
         pred.inputs = data.env_data;
         pred.weather_source = data.weather_source;
         pred.terrain_type = data.terrain_type;
@@ -371,10 +449,11 @@ export default function App() {
         setPrediction(pred);
       }
 
-      // Scroll to results
+      // Automatically switch to the Cognitive Studio sub-page & scroll to results
+      setActiveTab('analysis');
       setTimeout(() => {
         document.getElementById('analysis-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 500);
+      }, 250);
 
     } catch (err) {
       console.error('Auto capture+analyze failed:', err);
@@ -682,6 +761,12 @@ export default function App() {
         const resultData = await res.json();
         setPrediction(resultData);
       }
+
+      // Automatically switch to Cognitive Studio sub-page & scroll to results
+      setActiveTab('analysis');
+      setTimeout(() => {
+        document.getElementById('analysis-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 250);
     } catch (err) {
       alert("Analysis failed: " + err.message);
     } finally {
@@ -719,505 +804,777 @@ export default function App() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Top Navbar */}
-      <header style={{
-        borderBottom: '1px solid var(--border-color)',
-        padding: '16px 32px',
+    <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg-primary)', overflow: 'hidden' }}>
+      {/* ── LEFT SIDEBAR NAVIGATION ────────────────────────────────────────── */}
+      <aside style={{
+        width: '240px',
+        background: 'rgba(10, 14, 23, 0.95)',
+        borderRight: '1px solid var(--border-color)',
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        background: 'rgba(10, 14, 23, 0.90)',
-        backdropFilter: 'blur(16px)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50
+        zIndex: 60,
+        padding: '20px 16px',
+        flexShrink: 0
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
-            padding: '10px',
-            borderRadius: '12px',
-            display: 'flex',
-            boxShadow: '0 0 24px rgba(6, 182, 212, 0.45)'
-          }}>
-            <Satellite size={26} color="#fff" />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px' }}>
-                Slide<span style={{ color: '#06b6d4' }}>X</span> Sentinel & Landsat AI
+        <div>
+          {/* Brand Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px', padding: '0 8px' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+              padding: '8px',
+              borderRadius: '10px',
+              display: 'flex',
+              boxShadow: '0 0 20px rgba(6, 182, 212, 0.45)'
+            }}>
+              <Satellite size={22} color="#fff" />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.5px', color: '#fff' }}>
+                Slide<span style={{ color: '#06b6d4' }}>X</span> AI
               </h1>
-              <span style={{
-                fontSize: '11px',
-                background: 'rgba(6, 182, 212, 0.15)',
-                color: '#06b6d4',
-                padding: '2px 8px',
-                borderRadius: '999px',
-                fontWeight: 700,
-                border: '1px solid rgba(6, 182, 212, 0.3)'
-              }}>
-                v2.5 North India & Himalayan Corridors
+              <span style={{ fontSize: '10px', color: '#38bdf8', fontWeight: 600 }}>
+                v2.5 North India
               </span>
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Multi-Sensor Earth Observation (Sentinel-2 Cloud-Masked • Landsat 9 TOA/T1/L2)
-            </p>
+          </div>
+
+          {/* Nav Items */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {[
+              { id: 'map', label: '🛰️ Full Screen Map', icon: Globe, badge: 'Live' },
+              { id: 'dashboard', label: '📊 Risk Dashboard', icon: BarChart3, badge: null },
+              { id: 'risk_areas', label: '🔴 High Risk Areas', icon: AlertTriangle, badge: '8 Zones' },
+              { id: 'analysis', label: '🧠 AI Cognitive Studio', icon: Activity, badge: null },
+            ].map((tab) => {
+              const IconComp = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: isActive ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(59, 130, 246, 0.15))' : 'transparent',
+                    color: isActive ? '#38bdf8' : 'var(--text-muted)',
+                    fontSize: '13px',
+                    fontWeight: isActive ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    borderLeft: isActive ? '3px solid #06b6d4' : '3px solid transparent'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <IconComp size={16} color={isActive ? '#06b6d4' : '#9ca3af'} />
+                    <span>{tab.label}</span>
+                  </div>
+                  {tab.badge && (
+                    <span style={{
+                      fontSize: '9px',
+                      padding: '2px 6px',
+                      borderRadius: '999px',
+                      background: tab.id === 'map' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      color: tab.id === 'map' ? '#10b981' : '#f87171',
+                      fontWeight: 700
+                    }}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          {/* Landslide Hotspots & Physical Trigger Catalog Modal Button */}
+        {/* Quick Tools & System Health */}
+        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <button
             onClick={() => setCatalogModalOpen(true)}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              background: 'rgba(16, 185, 129, 0.15)',
+              background: 'rgba(16, 185, 129, 0.12)',
               color: '#34d399',
               border: '1px solid rgba(16, 185, 129, 0.3)',
-              padding: '8px 14px',
-              borderRadius: '10px',
-              fontSize: '13px',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              fontSize: '11px',
               fontWeight: 600,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              width: '100%'
             }}
           >
-            <Compass size={16} />
+            <Compass size={14} />
             Hotspots & Trigger Guide
           </button>
 
-          {/* Geemap Export Code Button */}
-          <button
-            onClick={() => handleExportGeemapCode(selectedHotspot, selectedSensor)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'rgba(168, 85, 247, 0.15)',
-              color: '#c084fc',
-              border: '1px solid rgba(168, 85, 247, 0.3)',
-              padding: '8px 14px',
-              borderRadius: '10px',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            <Code2 size={16} />
-            Export Geemap Code
-          </button>
-
-          {/* Dataset Fine-tune Modal */}
           <button
             onClick={() => setTrainModalOpen(true)}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              background: 'rgba(59, 130, 246, 0.15)',
+              background: 'rgba(59, 130, 246, 0.12)',
               color: '#60a5fa',
               border: '1px solid rgba(59, 130, 246, 0.3)',
-              padding: '8px 14px',
-              borderRadius: '10px',
-              fontSize: '13px',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              fontSize: '11px',
               fontWeight: 600,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              width: '100%'
             }}
           >
-            <Database size={16} />
+            <Database size={14} />
             Fine-Tune AI Weights
           </button>
 
-          {/* API Health */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             background: 'rgba(17, 24, 39, 0.85)',
-            padding: '6px 14px',
-            borderRadius: '20px',
+            padding: '6px 10px',
+            borderRadius: '8px',
             border: '1px solid var(--border-color)',
-            fontSize: '13px'
+            fontSize: '11px'
           }}>
             <span style={{
-              width: '8px',
-              height: '8px',
+              width: '7px',
+              height: '7px',
               borderRadius: '50%',
               background: backendOnline ? '#10b981' : '#ef4444',
-              boxShadow: backendOnline ? '0 0 10px #10b981' : '0 0 10px #ef4444'
+              boxShadow: backendOnline ? '0 0 8px #10b981' : '0 0 8px #ef4444'
             }} />
             <span style={{ color: 'var(--text-muted)' }}>
-              {backendOnline ? 'API Online (Port 8000)' : 'Connecting...'}
+              {backendOnline ? 'API Online' : 'Connecting...'}
             </span>
           </div>
         </div>
-      </header>
+      </aside>
 
-      {/* Main Container */}
-      <main style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px', width: '100%', flex: 1 }}>
-
-        {/* ── INTERACTIVE GOOGLE / ESRI SATELLITE MAP & SEARCH STUDIO ─────── */}
-        <div className="glass-panel" style={{ padding: '20px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', padding: '8px', borderRadius: '10px', display: 'flex' }}>
-                <Navigation size={20} color="#fff" />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 800 }}>
-                  Interactive Earth Observation & Satellite Map Scanner
-                </h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Search any city/valley, click anywhere to drop a target pin, then capture the satellite scene for AI inference.
-                </p>
-              </div>
-            </div>
-
-            {/* Map Layer Mode Switcher & Risk Overlay Toggle */}
-            <div style={{ display: 'flex', gap: '6px', background: 'rgba(15, 23, 42, 0.8)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              {[
-                { id: 'satellite', label: '🛰️ Google / Esri Satellite' },
-                { id: 'terrain', label: '🏔️ Topo & Relief' },
-                { id: 'osm', label: '🗺️ OpenStreetMap' }
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setMapLayerType(m.id)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: mapLayerType === m.id ? '#3b82f6' : 'transparent',
-                    color: mapLayerType === m.id ? '#fff' : 'var(--text-muted)',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {m.label}
-                </button>
-              ))}
-
-              <button
-                onClick={() => setShowRiskZones(!showRiskZones)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  border: showRiskZones ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid transparent',
-                  background: showRiskZones ? 'rgba(239, 68, 68, 0.25)' : 'transparent',
-                  color: showRiskZones ? '#f87171' : 'var(--text-muted)',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <AlertTriangle size={12} color="#f87171" />
-                {showRiskZones ? '🔴 India Hazard Zones (Active)' : 'Show Hazard Zones'}
-              </button>
-            </div>
+      {/* ── RIGHT MAIN WORKSPACE AREA ──────────────────────────────────────── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+        
+        {/* Top Header Bar */}
+        <header style={{
+          height: '60px',
+          borderBottom: '1px solid var(--border-color)',
+          padding: '0 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'rgba(10, 14, 23, 0.90)',
+          backdropFilter: 'blur(16px)',
+          flexShrink: 0
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>
+              {activeTab === 'map' && "🛰️ Full Page Earth Observation & Satellite Map Studio"}
+              {activeTab === 'dashboard' && "📊 Real-Time Landslide Risk Analytics Dashboard"}
+              {activeTab === 'risk_areas' && "🔴 North India & Himalayan High Risk Hazard Belt Catalog"}
+              {activeTab === 'analysis' && "🧠 AI Cognitive Physics & Spectral Inference Studio"}
+            </h2>
           </div>
 
-          {/* Search Bar & Action Controls */}
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-            <form onSubmit={handleSearchLocation} style={{ display: 'flex', flex: 1, minWidth: '280px', gap: '8px' }}>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search any mountain, valley, town (e.g. Joshimath, Wayanad, Kedarnath, Kinnaur, Leh)..."
-                style={{
-                  flex: 1,
-                  background: 'rgba(15, 23, 42, 0.8)',
-                  border: '1px solid var(--border-color)',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  color: '#fff',
-                  fontSize: '13px',
-                  fontFamily: 'inherit'
-                }}
-              />
-              <button
-                type="submit"
-                disabled={searchLoading}
-                style={{
-                  background: 'rgba(6, 182, 212, 0.2)',
-                  border: '1px solid rgba(6, 182, 212, 0.4)',
-                  color: '#38bdf8',
-                  padding: '0 18px',
-                  borderRadius: '10px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: searchLoading ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                {searchLoading ? <RefreshCw className="animate-spin" size={14} /> : <Navigation size={14} />}
-                {searchLoading ? 'Searching...' : 'Search Location'}
-              </button>
-            </form>
-
-            {/* Auto-Detection Status Badge */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.35)',
-              padding: '0 14px',
-              borderRadius: '10px',
-              height: '42px',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: '#10b981',
-              whiteSpace: 'nowrap'
-            }}>
-              <Sparkles size={13} />
-              <span>AI Auto-Sensor</span>
-              <span style={{ color: '#6b7280', fontWeight: 400 }}>| Sentinel-2 + Open-Meteo</span>
-            </div>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button
-              onClick={handleCaptureFromMap}
-              disabled={geeLoading || !selectedPin}
+              onClick={() => handleExportGeemapCode(selectedHotspot, selectedSensor)}
               style={{
-                background: geeLoading
-                  ? 'linear-gradient(135deg, #374151, #4b5563)'
-                  : 'linear-gradient(135deg, #10b981, #059669)',
-                color: '#fff',
-                border: 'none',
-                padding: '10px 22px',
-                borderRadius: '10px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: (geeLoading || !selectedPin) ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                boxShadow: geeLoading ? 'none' : '0 4px 20px rgba(16, 185, 129, 0.45)',
-                whiteSpace: 'nowrap',
-                opacity: !selectedPin ? 0.5 : 1,
-                transition: 'all 0.2s'
+                gap: '6px',
+                background: 'rgba(168, 85, 247, 0.15)',
+                color: '#c084fc',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer'
               }}
             >
-              {geeLoading ? (
-                <><RefreshCw size={15} className="animate-spin" /> Scanning & Analysing...</>
-              ) : (
-                <><Camera size={16} /> 📸 Scan & Analyse Area</>
-              )}
+              <Code2 size={14} />
+              Export Geemap
+            </button>
+
+            <button
+              onClick={() => setSosModalOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                color: '#fff',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 0 14px rgba(239, 68, 68, 0.4)'
+              }}
+            >
+              <AlertOctagon size={14} />
+              EMERGENCY SOS
             </button>
           </div>
+        </header>
 
-          {/* Interactive Leaflet Map Container */}
-          <div style={{ height: '360px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', position: 'relative' }}>
-            <MapContainer
-              center={mapCenter}
-              zoom={mapZoom}
-              scrollWheelZoom={true}
-              style={{ height: '100%', width: '100%' }}
-            >
-              {mapLayerType === 'satellite' && (
-                <TileLayer
-                  attribution='&copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                  maxZoom={18}
-                />
-              )}
-              {mapLayerType === 'terrain' && (
-                <TileLayer
-                  attribution='&copy; <a href="https://www.opentopomap.org">OpenTopoMap</a>'
-                  url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-                  maxZoom={17}
-                />
-              )}
-              {mapLayerType === 'osm' && (
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-              )}
+        {/* Dynamic Tab Body Container */}
+        <main style={{ flex: 1, overflowY: activeTab === 'map' ? 'hidden' : 'auto', padding: activeTab === 'map' ? 0 : '24px' }}>
 
-              <MapCenterController center={mapCenter} zoom={mapZoom} />
-              <MapClickHandler onLocationSelect={handleMapClick} />
+        {/* ── 1. FULL PAGE EARTH OBSERVATION & SATELLITE MAP STUDIO ─────────────── */}
+        {activeTab === 'map' && (
+          <div style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', padding: '16px', gap: '12px' }}>
+            {/* Search Bar & Action Controls */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', background: 'rgba(15, 23, 42, 0.9)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <form onSubmit={handleSearchLocation} style={{ display: 'flex', flex: 1, minWidth: '280px', gap: '8px' }}>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search any mountain, valley, town (e.g. Joshimath, Wayanad, Kedarnath, Kinnaur, Leh)..."
+                  style={{
+                    flex: 1,
+                    background: 'rgba(10, 14, 23, 0.8)',
+                    border: '1px solid var(--border-color)',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '13px',
+                    fontFamily: 'inherit'
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={searchLoading}
+                  style={{
+                    background: 'rgba(6, 182, 212, 0.2)',
+                    border: '1px solid rgba(6, 182, 212, 0.4)',
+                    color: '#38bdf8',
+                    padding: '0 18px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: searchLoading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {searchLoading ? <RefreshCw className="animate-spin" size={14} /> : <Navigation size={14} />}
+                  {searchLoading ? 'Searching...' : 'Search Location'}
+                </button>
+              </form>
 
-              {/* Render High-Risk Hazard Zones across India */}
-              {showRiskZones && INDIA_HIGH_RISK_ZONES.map((zone) => (
-                <React.Fragment key={zone.id}>
-                  <Circle
-                    center={zone.center}
-                    radius={zone.radius}
-                    pathOptions={{
-                      color: zone.color,
-                      fillColor: zone.color,
-                      fillOpacity: 0.18,
-                      weight: 2,
-                      dashArray: '6, 6'
+              {/* Map Layer Mode Switcher & Risk Overlay Toggle */}
+              <div style={{ display: 'flex', gap: '6px', background: 'rgba(10, 14, 23, 0.8)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                {[
+                  { id: 'satellite', label: '🛰️ Google / Esri Satellite' },
+                  { id: 'terrain', label: '🏔️ Topo & Relief' },
+                  { id: 'osm', label: '🗺️ OpenStreetMap' }
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setMapLayerType(m.id)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: mapLayerType === m.id ? '#3b82f6' : 'transparent',
+                      color: mapLayerType === m.id ? '#fff' : 'var(--text-muted)',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
                     }}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setShowRiskZones(!showRiskZones)}
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: '6px',
+                    border: showRiskZones ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid transparent',
+                    background: showRiskZones ? 'rgba(239, 68, 68, 0.25)' : 'transparent',
+                    color: showRiskZones ? '#f87171' : 'var(--text-muted)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <AlertTriangle size={12} color="#f87171" />
+                  {showRiskZones ? '🔴 India Risk Zones' : 'Show Risk Zones'}
+                </button>
+              </div>
+
+              <button
+                onClick={handleScanEntireMap}
+                disabled={scanLoading || !selectedPin}
+                style={{
+                  background: scanLoading
+                    ? 'linear-gradient(135deg, #374151, #4b5563)'
+                    : 'linear-gradient(135deg, #eab308, #ca8a04)',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: (scanLoading || !selectedPin) ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: scanLoading ? 'none' : '0 4px 16px rgba(234, 179, 8, 0.45)',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {scanLoading ? (
+                  <><RefreshCw className="animate-spin" size={14} /> Scanning Region (15km)...</>
+                ) : (
+                  <><Globe size={14} /> 🌐 Scan Entire Region</>
+                )}
+              </button>
+
+              <button
+                onClick={handleCaptureFromMap}
+                disabled={geeLoading || !selectedPin}
+                style={{
+                  background: geeLoading
+                    ? 'linear-gradient(135deg, #374151, #4b5563)'
+                    : 'linear-gradient(135deg, #10b981, #059669)',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '10px 18px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: (geeLoading || !selectedPin) ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: geeLoading ? 'none' : '0 4px 16px rgba(16, 185, 129, 0.45)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {geeLoading ? (
+                  <><RefreshCw size={14} className="animate-spin" /> Scanning & Analysing...</>
+                ) : (
+                  <><Camera size={14} /> 📸 Scan & AI Analyse Area</>
+                )}
+              </button>
+            </div>
+
+            {/* FULL PAGE Leaflet Map Container */}
+            <div style={{ flex: 1, minHeight: 0, borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-color)', position: 'relative' }}>
+              <MapContainer
+                center={mapCenter}
+                zoom={mapZoom}
+                scrollWheelZoom={true}
+                style={{ height: '100%', width: '100%' }}
+              >
+                {mapLayerType === 'satellite' && (
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    maxZoom={18}
                   />
+                )}
+                {mapLayerType === 'terrain' && (
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.opentopomap.org">OpenTopoMap</a>'
+                    url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                    maxZoom={17}
+                  />
+                )}
+                {mapLayerType === 'osm' && (
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                )}
+
+                <MapCenterController center={mapCenter} zoom={mapZoom} />
+                <MapClickHandler onLocationSelect={handleMapClick} />
+
+                {/* Render High-Risk Hazard Zones across India */}
+                {showRiskZones && INDIA_HIGH_RISK_ZONES.map((zone) => (
+                  <React.Fragment key={zone.id}>
+                    <Circle
+                      center={zone.center}
+                      radius={zone.radius}
+                      pathOptions={{
+                        color: zone.color,
+                        fillColor: zone.color,
+                        fillOpacity: 0.18,
+                        weight: 2,
+                        dashArray: '6, 6'
+                      }}
+                    />
+                    <CircleMarker
+                      center={zone.center}
+                      radius={8}
+                      pathOptions={{
+                        color: '#ffffff',
+                        fillColor: zone.color,
+                        fillOpacity: 0.95,
+                        weight: 2
+                      }}
+                    >
+                      <Tooltip permanent={false} direction="top" offset={[0, -8]}>
+                        <strong style={{ color: zone.color }}>{zone.name}</strong><br />
+                        <span style={{ fontSize: '10px' }}>{zone.risk} ZONE</span>
+                      </Tooltip>
+                      <Popup>
+                        <div style={{ maxWidth: '260px', fontFamily: 'system-ui, sans-serif', color: '#1e293b' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <strong style={{ fontSize: '13px', color: '#0f172a' }}>{zone.name}</strong>
+                            <span style={{
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: `${zone.color}22`,
+                              color: zone.color,
+                              fontWeight: 800,
+                              border: `1px solid ${zone.color}44`
+                            }}>
+                              {zone.risk}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#475569', marginBottom: '5px' }}>
+                            <strong>Region:</strong> {zone.subregion}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#dc2626', marginBottom: '5px' }}>
+                            <strong>Major Events:</strong><br /> {zone.events}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#b45309', marginBottom: '8px' }}>
+                            <strong>Trigger Thresholds:</strong><br /> {zone.triggers}
+                          </div>
+                          <button
+                            onClick={() => {
+                              setMapCenter(zone.center);
+                              setMapZoom(12);
+                              setSelectedPin({ lat: zone.center[0], lng: zone.center[1], name: zone.name });
+                              setLocationName(zone.name);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '6px 12px',
+                              background: 'linear-gradient(135deg, #10b981, #059669)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            🎯 Select & Scan Hazard Sector
+                          </button>
+                        </div>
+                      </Popup>
+                    </CircleMarker>
+                  </React.Fragment>
+                ))}
+
+                {/* Render Map Regional Scanner Grid Sectors */}
+                {scanResults && scanResults.sectors && scanResults.sectors.map((sec) => (
                   <CircleMarker
-                    center={zone.center}
-                    radius={8}
+                    key={sec.sector_id}
+                    center={[sec.lat, sec.lon]}
+                    radius={sec.is_hotspot ? 14 : 9}
                     pathOptions={{
-                      color: '#ffffff',
-                      fillColor: zone.color,
-                      fillOpacity: 0.95,
+                      color: sec.probability_percentage >= 70 ? '#ef4444' : sec.probability_percentage >= 45 ? '#f97316' : '#10b981',
+                      fillColor: sec.probability_percentage >= 70 ? '#ef4444' : sec.probability_percentage >= 45 ? '#f97316' : '#10b981',
+                      fillOpacity: 0.75,
                       weight: 2
                     }}
                   >
-                    <Tooltip permanent={false} direction="top" offset={[0, -8]}>
-                      <strong style={{ color: zone.color }}>{zone.name}</strong><br />
-                      <span style={{ fontSize: '10px' }}>{zone.risk} ZONE</span>
+                    <Tooltip permanent={true} direction="center" className="map-sector-tooltip">
+                      <span style={{ fontSize: '10px', fontWeight: 800, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+                        {sec.probability_percentage}%
+                      </span>
                     </Tooltip>
                     <Popup>
-                      <div style={{ maxWidth: '260px', fontFamily: 'system-ui, sans-serif', color: '#1e293b' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <strong style={{ fontSize: '13px', color: '#0f172a' }}>{zone.name}</strong>
-                          <span style={{
-                            fontSize: '10px',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            background: `${zone.color}22`,
-                            color: zone.color,
-                            fontWeight: 800,
-                            border: `1px solid ${zone.color}44`
-                          }}>
-                            {zone.risk}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#475569', marginBottom: '5px' }}>
-                          <strong>Region:</strong> {zone.subregion}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#dc2626', marginBottom: '5px' }}>
-                          <strong>Major Events:</strong><br /> {zone.events}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#b45309', marginBottom: '8px' }}>
-                          <strong>Trigger Thresholds:</strong><br /> {zone.triggers}
-                        </div>
+                      <div style={{ fontSize: '12px', color: '#0f172a' }}>
+                        <strong style={{ color: sec.probability_percentage >= 45 ? '#dc2626' : '#059669' }}>
+                          {sec.risk_level} ({sec.probability_percentage}%)
+                        </strong>
+                        <br />
+                        <span><strong>DEM Slope:</strong> {sec.slope_angle}°</span><br />
+                        <span><strong>24h Rain:</strong> {sec.rainfall_24h} mm</span><br />
+                        <span><strong>Coordinates:</strong> {sec.lat}°N, {sec.lon}°E</span>
                         <button
                           onClick={() => {
-                            setMapCenter(zone.center);
-                            setMapZoom(12);
-                            setSelectedPin({ lat: zone.center[0], lng: zone.center[1], name: zone.name });
-                            setLocationName(zone.name);
+                            setSelectedPin({ lat: sec.lat, lng: sec.lon, name: `Grid Sector (${sec.lat}°N, ${sec.lon}°E)` });
+                            handleCaptureFromMap(sec.lat, sec.lon, `Grid Sector (${sec.lat}°N, ${sec.lon}°E)`);
                           }}
                           style={{
                             width: '100%',
-                            padding: '6px 12px',
-                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            marginTop: '6px',
+                            padding: '6px 8px',
+                            background: 'linear-gradient(135deg, #06b6d4, #0284c7)',
                             color: '#fff',
                             border: 'none',
-                            borderRadius: '6px',
+                            borderRadius: '4px',
                             fontSize: '11px',
                             fontWeight: 700,
                             cursor: 'pointer'
                           }}
                         >
-                          🎯 Select & Scan Hazard Sector
+                          ⚡ AI Analyse in Cognitive Studio
                         </button>
                       </div>
                     </Popup>
                   </CircleMarker>
-                </React.Fragment>
-              ))}
+                ))}
 
+                {selectedPin && (
+                  <Marker position={[selectedPin.lat, selectedPin.lng]} />
+                )}
+              </MapContainer>
+
+              {/* Target Floating Badge */}
               {selectedPin && (
-                <Marker position={[selectedPin.lat, selectedPin.lng]} />
+                <div style={{
+                  position: 'absolute',
+                  bottom: '16px',
+                  left: '16px',
+                  zIndex: 1000,
+                  background: 'rgba(15, 23, 42, 0.90)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid rgba(6, 182, 212, 0.4)',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <MapPin size={16} color="#06b6d4" />
+                  <div style={{ fontSize: '12px' }}>
+                    <strong style={{ color: '#fff' }}>{selectedPin.name}</strong>
+                    <span style={{ color: '#9ca3af', marginLeft: '8px', fontFamily: 'var(--font-mono)' }}>
+                      [{selectedPin.lat.toFixed(4)}°N, {selectedPin.lng.toFixed(4)}°E]
+                    </span>
+                  </div>
+                </div>
               )}
-            </MapContainer>
+            </div>
 
-            {/* Target Floating Badge */}
-            {selectedPin && (
+            {/* Regional Scan Summary & High Probability Hotspot List */}
+            {scanResults && (
               <div style={{
-                position: 'absolute',
-                bottom: '12px',
-                left: '12px',
-                zIndex: 1000,
-                background: 'rgba(15, 23, 42, 0.90)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(6, 182, 212, 0.4)',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
+                padding: '12px 16px',
+                borderRadius: '10px',
+                background: 'rgba(15, 23, 42, 0.95)',
+                border: '1px solid rgba(234, 179, 8, 0.4)',
+                maxHeight: '180px',
+                overflowY: 'auto'
               }}>
-                <MapPin size={16} color="#06b6d4" />
-                <div style={{ fontSize: '12px' }}>
-                  <strong style={{ color: '#fff' }}>{selectedPin.name}</strong>
-                  <span style={{ color: '#9ca3af', marginLeft: '8px', fontFamily: 'var(--font-mono)' }}>
-                    [{selectedPin.lat.toFixed(4)}°N, {selectedPin.lng.toFixed(4)}°E]
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Globe size={15} color="#eab308" />
+                    <strong style={{ fontSize: '12px', color: '#fef08a' }}>
+                      Regional Failure Probability Scan Summary
+                    </strong>
+                  </div>
+                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                    {scanResults.summary}
                   </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '8px' }}>
+                  {scanResults.high_risk_hotspots.map((hotspot) => (
+                    <div
+                      key={hotspot.sector_id}
+                      onClick={() => {
+                        setSelectedPin({ lat: hotspot.lat, lng: hotspot.lon, name: `Hotspot (${hotspot.lat}°N, ${hotspot.lon}°E)` });
+                        setMapCenter([hotspot.lat, hotspot.lon]);
+                        handleCaptureFromMap(hotspot.lat, hotspot.lon, `Hotspot (${hotspot.lat}°N, ${hotspot.lon}°E)`);
+                      }}
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#f87171' }}>
+                          ⚠️ {hotspot.risk_level}
+                        </span>
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444' }}>
+                          {hotspot.probability_percentage}%
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#cbd5e1', marginTop: '2px' }}>
+                        DEM Slope: {hotspot.slope_angle}° | Rain: {hotspot.rainfall_24h}mm
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
+        )}
 
-          {/* AI Auto-Detection Status Bar */}
-          {(geeData || autoStatus) && (
-            <div style={{
-              marginTop: '14px',
-              padding: '12px 16px',
-              background: 'rgba(0, 0, 0, 0.35)',
-              borderRadius: '10px',
-              border: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '10px'
-            }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-                  <span style={{ color: 'var(--text-muted)' }}>Sensor: <strong style={{ color: '#38bdf8' }}>Sentinel-2 SR (Auto)</strong></span>
-                </div>
-                {autoStatus?.terrain && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Mountain size={12} color="#a78bfa" />
-                    <span style={{ color: '#a78bfa' }}>{autoStatus.terrain}</span>
-                  </div>
-                )}
-                {autoStatus?.slope && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ color: 'var(--text-dim)' }}>Slope: <strong style={{ color: '#fbbf24' }}>{autoStatus.slope}°</strong></span>
-                  </div>
-                )}
-                {autoStatus?.weatherSrc && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <CloudRain size={12} color="#38bdf8" />
-                    <span style={{ color: '#38bdf8', fontSize: '11px' }}>{autoStatus.weatherSrc}</span>
-                  </div>
-                )}
+        {/* ── 2. DASHBOARD SUB-PAGE ────────────────────────────────────────── */}
+        {activeTab === 'dashboard' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+              <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #ef4444' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>High-Risk Zones Monitored</span>
+                <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#ef4444', marginTop: '6px' }}>8 Corridors</h3>
+                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>Garhwal, Western Ghats, Sikkim, Kinnaur, Ramban</p>
               </div>
-              <button
-                onClick={handleCaptureFromMap}
-                disabled={geeLoading || !selectedPin}
-                style={{
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#10b981',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  cursor: (geeLoading || !selectedPin) ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
-              >
-                <RefreshCw size={12} className={geeLoading ? 'animate-spin' : ''} />
-                {geeLoading ? 'Scanning...' : 'Re-Scan Area'}
-              </button>
+
+              <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #06b6d4' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Active Satellite Feed</span>
+                <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#06b6d4', marginTop: '6px' }}>Sentinel-2 SR</h3>
+                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>Cloud Masked QA60 + Landsat-9 TOA/L2</p>
+              </div>
+
+              <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #eab308' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Real-Time Climate Engine</span>
+                <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#eab308', marginTop: '6px' }}>Open-Meteo API</h3>
+                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>24h Precip, ET0 Evapo, Soil Saturation</p>
+              </div>
+
+              <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #a855f7' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>DEM Elevation Resolution</span>
+                <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#a855f7', marginTop: '6px' }}>SRTM 30m</h3>
+                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>OpenTopoData Rise/Run Slope Physics</p>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Active Prediction Summary Card if available */}
+            {prediction ? (
+              <div className="glass-panel" style={{ padding: '24px', border: '1px solid rgba(6, 182, 212, 0.4)' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#38bdf8', marginBottom: '14px' }}>
+                  Latest AI Prediction Results [{prediction.risk_level}]
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                  <div>
+                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>Failure Probability</span>
+                    <div style={{ fontSize: '28px', fontWeight: 900, color: prediction.will_landslide === "YES" ? '#ef4444' : '#10b981' }}>
+                      {prediction.probability_percentage}%
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>Target Sector</span>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginTop: '6px' }}>
+                      {prediction.location || locationName}
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>Terrain Slope</span>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#fbbf24', marginTop: '6px' }}>
+                      {slopeAngle}° Degree Incline
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="glass-panel" style={{ padding: '30px', textAlign: 'center', color: '#9ca3af' }}>
+                <Activity size={32} color="#06b6d4" style={{ margin: '0 auto 10px' }} />
+                <h4>No Active Inference Selected</h4>
+                <p style={{ fontSize: '12px', marginTop: '6px' }}>Select any sector on the full page map and click "Scan & AI Analyse Area" to populate real-time analytics.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── 3. HIGH RISK AREAS SUB-PAGE ───────────────────────────────────── */}
+        {activeTab === 'risk_areas' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                Official National Disaster Management & GSI Landslide Hazard Susceptibility Corridors across Northern India & Western Ghats.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
+              {INDIA_HIGH_RISK_ZONES.map((zone) => (
+                <div key={zone.id} className="glass-panel" style={{ padding: '20px', borderLeft: `4px solid ${zone.color}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>{zone.name}</h3>
+                    <span style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '4px', background: `${zone.color}22`, color: zone.color, fontWeight: 800, border: `1px solid ${zone.color}44` }}>
+                      {zone.risk}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px' }}><strong>Region:</strong> {zone.subregion}</p>
+                  <p style={{ fontSize: '11px', color: '#cbd5e1', marginBottom: '8px' }}>{zone.desc}</p>
+                  <div style={{ fontSize: '11px', color: '#f87171', marginBottom: '6px' }}><strong>Historical Events:</strong> {zone.events}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <button
+                      onClick={() => {
+                        setMapCenter(zone.center);
+                        setMapZoom(12);
+                        setSelectedPin({ lat: zone.center[0], lng: zone.center[1], name: zone.name });
+                        setLocationName(zone.name);
+                        setActiveTab('map');
+                        fetchCustomSatelliteData(zone.center[0], zone.center[1], zone.name);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        background: 'rgba(59, 130, 246, 0.2)',
+                        border: '1px solid rgba(59, 130, 246, 0.4)',
+                        color: '#60a5fa',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🎯 Full Page Map
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSelectedPin({ lat: zone.center[0], lng: zone.center[1], name: zone.name });
+                        setLocationName(zone.name);
+                        handleCaptureFromMap(zone.center[0], zone.center[1], zone.name);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        background: 'linear-gradient(135deg, #06b6d4, #0284c7)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ⚡ AI Cognitive Studio
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── 4. AI COGNITIVE STUDIO & ANALYSIS SUB-PAGE ─────────────────────── */}
+        {activeTab === 'analysis' && (
+          <div>
 
         {/* ── PREDICTION WORKBENCH (2 COLUMNS) ─────────────────────────────── */}
         <div id="ai-workbench" style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 480px) 1fr', gap: '28px' }}>
@@ -2212,9 +2569,11 @@ export default function App() {
               </div>
             )}
           </div>
-
         </div>
+        </div>
+        )}
       </main>
+    </div>
 
       {/* ── LANDSLIDE HOTSPOTS & PHYSICAL TRIGGER CATALOG MODAL ───────────── */}
       {catalogModalOpen && (
