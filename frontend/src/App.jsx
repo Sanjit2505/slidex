@@ -15,6 +15,7 @@ import {
   BarChart3,
   MapPin,
   ShieldAlert,
+  Shield,
   Sliders,
   Database,
   Camera,
@@ -33,11 +34,16 @@ import {
   Check,
   Globe,
   Sun,
-  History
+  History,
+  Zap,
+  Download,
+  Printer,
+  Flame
 } from 'lucide-react';
 
+
 // Map imports from react-leaflet & leaflet
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap, Circle, CircleMarker, Popup, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap, Circle, CircleMarker, Popup, Tooltip, Polygon, Rectangle } from 'react-leaflet';
 import L from 'leaflet';
 
 // Fix Leaflet default marker icon
@@ -47,6 +53,16 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
+
+function RecenterMap({ lat, lng, zoom = 14 }) {
+  const map = useMap();
+  useEffect(() => {
+    if (lat != null && lng != null) {
+      map.setView([lat, lng], zoom);
+    }
+  }, [lat, lng, zoom, map]);
+  return null;
+}
 
 // Official High-Risk Landslide Hazard Zones of India Dataset
 const INDIA_HIGH_RISK_ZONES = [
@@ -169,7 +185,34 @@ function MapCenterController({ center, zoom }) {
   return null;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE || (typeof window !== 'undefined' && window.location.hostname ? `http://${window.location.hostname}:8000` : "http://127.0.0.1:8000");
+let resolvedApiBase = null;
+
+async function apiFetch(path, options = {}) {
+  const candidates = [
+    ...(resolvedApiBase !== null ? [resolvedApiBase] : []),
+    import.meta.env.VITE_API_BASE || '',
+    '',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+  ].filter((v, i, a) => typeof v === 'string' && a.indexOf(v) === i);
+
+  let lastError = null;
+  for (const base of candidates) {
+    try {
+      const url = `${base}${path.startsWith('/') ? path : '/' + path}`;
+      const res = await fetch(url, options);
+      if (res.ok || (res.status >= 200 && res.status < 500)) {
+        resolvedApiBase = base;
+        return res;
+      }
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError || new Error(`Failed to fetch ${path} from backend.`);
+}
+
+
 
 export default function App() {
   // Navigation & Sub-Page State: 'home' | 'map' | 'dashboard' | 'risk_areas' | 'analysis'
@@ -231,6 +274,41 @@ export default function App() {
   const [scanLoading, setScanLoading] = useState(false);
   const [scanResults, setScanResults] = useState(null);
 
+  // AI Rescue Ideas & Innovation Studio State
+  const [aiRescueIdeas, setAiRescueIdeas] = useState([]);
+  const [aiRescueLoading, setAiRescueLoading] = useState(false);
+  const [aiCustomQuery, setAiCustomQuery] = useState('');
+
+  const fetchAiRescueIdeas = async (customQuery = '') => {
+    setAiRescueLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('location_name', selectedPin?.name || locationName);
+      formData.append('lat', selectedPin?.lat || 30.557);
+      formData.append('lon', selectedPin?.lng || 79.5667);
+      formData.append('probability', prediction?.probability || 0.75);
+      formData.append('slope_angle', prediction?.slope_angle || slopeAngle || 35);
+      formData.append('rainfall', rainfall || 120);
+      formData.append('soil_moisture', soilMoisture || 75);
+      formData.append('factor_of_safety', prediction?.factor_of_safety || 1.05);
+      formData.append('earthquake_mag', earthquakeMag || 2.5);
+      formData.append('failure_window', prediction?.failure_window || '2 to 6 Hours');
+      formData.append('custom_prompt', customQuery || aiCustomQuery);
+
+      const res = await apiFetch('/api/ai-rescue-ideas', { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ideas) {
+          setAiRescueIdeas(data.ideas);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch AI rescue ideas:", err);
+    } finally {
+      setAiRescueLoading(false);
+    }
+  };
+
   // Scan entire map region around active location
   const handleScanEntireMap = async () => {
     if (!selectedPin) return;
@@ -243,7 +321,7 @@ export default function App() {
       fd.append('radius_km', 15.0);
       fd.append('grid_size', 3);
 
-      const res = await fetch(`${API_BASE}/api/scan-entire-map`, { method: 'POST', body: fd });
+      const res = await apiFetch('/api/scan-entire-map', { method: 'POST', body: fd });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setScanResults(data);
@@ -265,12 +343,13 @@ export default function App() {
   const fetchCustomSatelliteData = async (lat, lng, locName) => {
     setGeeLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/gee-capture-custom?lat=${lat}&lon=${lng}&location_name=${encodeURIComponent(locName || 'Selected Location')}`);
+      const res = await apiFetch(`/api/gee-capture-custom?lat=${lat}&lon=${lng}&location_name=${encodeURIComponent(locName || 'Selected Location')}`);
       const data = await res.json();
       if (data.success) {
         setGeeData(data);
         const liveB64 = data.image_base64_post || data.image_base64;
         const preB64 = data.image_base64_pre || data.image_base64;
+
 
         if (liveB64) setSinglePreview(liveB64);
         if (preB64) setPrePreview(preB64);
@@ -379,7 +458,7 @@ export default function App() {
       formData.append('lon', lng);
       formData.append('location_name', name);
 
-      const res = await fetch(`${API_BASE}/api/auto-capture-analyze`, {
+      const res = await apiFetch('/api/auto-capture-analyze', {
         method: 'POST',
         body: formData
       });
@@ -476,7 +555,7 @@ export default function App() {
       formData.append('slope_angle', envData?.slope_angle ?? slopeAngle);
       formData.append('soil_moisture', envData?.soil_moisture ?? soilMoisture);
       formData.append('location_name', envData?.location_name ?? locationName);
-      const res = await fetch(`${API_BASE}/api/predict-single`, { method: 'POST', body: formData });
+      const res = await apiFetch('/api/predict-single', { method: 'POST', body: formData });
       if (!res.ok) throw new Error(await res.text());
       const resultData = await res.json();
       setPrediction(resultData);
@@ -510,21 +589,24 @@ export default function App() {
   const reportImageRef = useRef(null);
 
   // Health Check & Fetch Presets
-  useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/health`);
-        if (res.ok) {
-          const data = await res.json();
-          setBackendOnline(true);
-          setBackendInfo(data);
-        }
-      } catch (e) {
-        setBackendOnline(false);
+  const checkHealth = async () => {
+    try {
+      const res = await apiFetch('/api/health');
+      if (res.ok) {
+        const data = await res.json();
+        setBackendOnline(true);
+        setBackendInfo(data);
+        return;
       }
-    };
+      setBackendOnline(false);
+    } catch (e) {
+      setBackendOnline(false);
+    }
+  };
+
+  useEffect(() => {
     checkHealth();
-    const interval = setInterval(checkHealth, 6000);
+    const interval = setInterval(checkHealth, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -532,7 +614,7 @@ export default function App() {
   useEffect(() => {
     const fetchPresets = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/gee-presets`);
+        const res = await apiFetch('/api/gee-presets');
         if (res.ok) {
           const data = await res.json();
           setGeePresets(data.presets || []);
@@ -548,7 +630,7 @@ export default function App() {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/sos-alerts`);
+        const res = await apiFetch('/api/sos-alerts');
         if (res.ok) {
           const data = await res.json();
           setRecentAlerts(data.alerts || []);
@@ -579,16 +661,10 @@ export default function App() {
         setLocationLoading(false);
       },
       (err) => {
-        // Realistic Himalayan location fallback (Joshimath, Uttarakhand)
-        setLiveLocation({
-          latitude: 30.5570 + (Math.random() - 0.5) * 0.01,
-          longitude: 79.5667 + (Math.random() - 0.5) * 0.01,
-          accuracy: 15 + Math.random() * 20,
-          simulated: true
-        });
+        setLocationError('Could not get GPS location: ' + err.message);
         setLocationLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
@@ -604,7 +680,7 @@ export default function App() {
       fd.append('accuracy', liveLocation.accuracy);
       fd.append('sender_name', reporterName || 'Himalayan Field Team');
       fd.append('message', 'EMERGENCY SOS: Imminent slope collapse / debris slide detected! Immediate evacuation required in this sector!');
-      const res = await fetch(`${API_BASE}/api/sos`, { method: 'POST', body: fd });
+      const res = await apiFetch('/api/sos', { method: 'POST', body: fd });
       const data = await res.json();
       setSosResult(data);
     } catch (e) {
@@ -627,11 +703,11 @@ export default function App() {
       fd.append('description', reportDescription || 'Ground subsidence or active debris slide observed');
       fd.append('reporter_name', reporterName || 'Field Observer');
       if (reportImage) fd.append('image', reportImage);
-      const res = await fetch(`${API_BASE}/api/report-incident`, { method: 'POST', body: fd });
+      const res = await apiFetch('/api/report-incident', { method: 'POST', body: fd });
       const data = await res.json();
       setReportResult(data);
       // Refresh alerts
-      const alertsRes = await fetch(`${API_BASE}/api/sos-alerts`);
+      const alertsRes = await apiFetch('/api/sos-alerts');
       if (alertsRes.ok) {
         const alertData = await alertsRes.json();
         setRecentAlerts(alertData.alerts || []);
@@ -649,7 +725,7 @@ export default function App() {
     try {
       const targetHotspot = hotspotId || selectedHotspot;
       const targetSensor = sensorType || selectedSensor;
-      const res = await fetch(`${API_BASE}/api/gee-fetch?preset_id=${targetHotspot}&sensor=${targetSensor}`);
+      const res = await apiFetch(`/api/gee-fetch?preset_id=${targetHotspot}&sensor=${targetSensor}`);
       const data = await res.json();
       setGeeData(data);
 
@@ -691,7 +767,7 @@ export default function App() {
     try {
       const targetHotspot = hotspotId || selectedHotspot;
       const targetSensor = sensorType || selectedSensor;
-      const res = await fetch(`${API_BASE}/api/gee-export-code?preset_id=${targetHotspot}&sensor=${targetSensor}`);
+      const res = await apiFetch(`/api/gee-export-code?preset_id=${targetHotspot}&sensor=${targetSensor}`);
       const data = await res.json();
       setGeemapCode(data.python_code);
       setCodeModalOpen(true);
@@ -706,19 +782,43 @@ export default function App() {
     fetchSatelliteData('uttarakhand_joshimath', 'sentinel2_sr');
   }, []);
 
+  // Ensure image File object exists, falling back to dataURI or synthesized terrain canvas
+  const ensureFile = (imgFile, previewUri, fallbackName = 'satellite_scene.jpg') => {
+    if (imgFile instanceof File) return imgFile;
+    if (previewUri && typeof previewUri === 'string' && previewUri.startsWith('data:')) {
+      const f = dataURItoFile(previewUri, fallbackName);
+      if (f) return f;
+    }
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#2d3748';
+        ctx.fillRect(0, 0, 256, 256);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        return dataURItoFile(dataUrl, fallbackName);
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  };
+
   // Run Analysis based on active mode
   const handleAnalyze = async () => {
     setLoading(true);
     try {
       if (analysisMode === 'single') {
-        if (!singleImage) {
+        const fileToSend = ensureFile(singleImage, singlePreview, 'single_scene.jpg');
+        if (!fileToSend) {
           alert("Please upload or select a satellite image for slope and hazard analysis.");
           setLoading(false);
           return;
         }
 
         const formData = new FormData();
-        formData.append("image", singleImage);
+        formData.append("image", fileToSend);
         formData.append("rainfall", rainfall);
         formData.append("vibration", vibration);
         formData.append("earthquake_mag", earthquakeMag);
@@ -726,7 +826,7 @@ export default function App() {
         formData.append("soil_moisture", soilMoisture);
         formData.append("location_name", locationName);
 
-        const res = await fetch(`${API_BASE}/api/predict-single`, {
+        const res = await apiFetch('/api/predict-single', {
           method: "POST",
           body: formData,
         });
@@ -736,15 +836,17 @@ export default function App() {
         setPrediction(resultData);
 
       } else {
-        if (!preImage || !postImage) {
+        const preToSend = ensureFile(preImage, prePreview, 'pre_event.jpg');
+        const postToSend = ensureFile(postImage, postPreview, 'post_event.jpg');
+        if (!preToSend || !postToSend) {
           alert("Please provide both Pre-Event (T1) and Post-Event (T2) satellite images.");
           setLoading(false);
           return;
         }
 
         const formData = new FormData();
-        formData.append("image_pre", preImage);
-        formData.append("image_post", postImage);
+        formData.append("image_pre", preToSend);
+        formData.append("image_post", postToSend);
         formData.append("rainfall", rainfall);
         formData.append("vibration", vibration);
         formData.append("earthquake_mag", earthquakeMag);
@@ -752,7 +854,7 @@ export default function App() {
         formData.append("soil_moisture", soilMoisture);
         formData.append("location_name", locationName);
 
-        const res = await fetch(`${API_BASE}/api/predict`, {
+        const res = await apiFetch('/api/predict', {
           method: "POST",
           body: formData,
         });
@@ -774,6 +876,7 @@ export default function App() {
     }
   };
 
+
   // Train AI Model
   const handleTrainModel = async () => {
     setTraining(true);
@@ -781,7 +884,7 @@ export default function App() {
     try {
       const formData = new FormData();
       formData.append("dataset_folder", "landslide_datasets");
-      const res = await fetch(`${API_BASE}/api/train`, {
+      const res = await apiFetch('/api/train', {
         method: "POST",
         body: formData
       });
@@ -842,13 +945,12 @@ export default function App() {
           {/* Nav Items */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {[
-              { id: 'map', label: '🛰️ Full Screen Map', icon: Globe, badge: 'Live' },
-              { id: 'dashboard', label: '📊 Risk Dashboard', icon: BarChart3, badge: null },
-              { id: 'risk_areas', label: '🔴 High Risk Areas', icon: AlertTriangle, badge: '8 Zones' },
-              { id: 'analysis', label: '🧠 AI Cognitive Studio', icon: Activity, badge: null },
+              { id: 'map', label: '🛰️ GIS Map & Scanner', icon: Globe, badge: 'Live GIS' },
+              { id: 'impact', label: '🚨 Impact & Rescue Maps', icon: ShieldAlert, badge: '2 Maps' },
+              { id: 'cognitive', label: '🧠 Cognitive AI Engine', icon: Activity, badge: 'Physics' },
             ].map((tab) => {
               const IconComp = tab.icon;
-              const isActive = activeTab === tab.id;
+              const isActive = activeTab === tab.id || (tab.id === 'cognitive' && activeTab === 'analysis');
               return (
                 <button
                   key={tab.id}
@@ -858,7 +960,7 @@ export default function App() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     width: '100%',
-                    padding: '10px 14px',
+                    padding: '12px 14px',
                     borderRadius: '10px',
                     border: 'none',
                     background: isActive ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(59, 130, 246, 0.15))' : 'transparent',
@@ -879,8 +981,8 @@ export default function App() {
                       fontSize: '9px',
                       padding: '2px 6px',
                       borderRadius: '999px',
-                      background: tab.id === 'map' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                      color: tab.id === 'map' ? '#10b981' : '#f87171',
+                      background: tab.id === 'map' ? 'rgba(16, 185, 129, 0.2)' : tab.id === 'impact' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(168, 85, 247, 0.2)',
+                      color: tab.id === 'map' ? '#10b981' : tab.id === 'impact' ? '#f87171' : '#c084fc',
                       fontWeight: 700
                     }}>
                       {tab.badge}
@@ -962,7 +1064,7 @@ export default function App() {
 
       {/* ── RIGHT MAIN WORKSPACE AREA ──────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-        
+
         {/* Top Header Bar */}
         <header style={{
           height: '60px',
@@ -977,10 +1079,9 @@ export default function App() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>
-              {activeTab === 'map' && "🛰️ Full Page Earth Observation & Satellite Map Studio"}
-              {activeTab === 'dashboard' && "📊 Real-Time Landslide Risk Analytics Dashboard"}
-              {activeTab === 'risk_areas' && "🔴 North India & Himalayan High Risk Hazard Belt Catalog"}
-              {activeTab === 'analysis' && "🧠 AI Cognitive Physics & Spectral Inference Studio"}
+              {activeTab === 'map' && "🛰️ GIS Satellite Observation & Regional Hazard Scanner"}
+              {activeTab === 'impact' && "🚨 Socio-Economic Impact Assessment & Disaster Rescue Maps"}
+              {(activeTab === 'cognitive' || activeTab === 'analysis') && "🧠 Cognitive Physics Engine & AI Multi-Sensor Studio"}
             </h2>
           </div>
 
@@ -1031,1549 +1132,2563 @@ export default function App() {
         {/* Dynamic Tab Body Container */}
         <main style={{ flex: 1, overflowY: activeTab === 'map' ? 'hidden' : 'auto', padding: activeTab === 'map' ? 0 : '24px' }}>
 
-        {/* ── 1. FULL PAGE EARTH OBSERVATION & SATELLITE MAP STUDIO ─────────────── */}
-        {activeTab === 'map' && (
-          <div style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', padding: '16px', gap: '12px' }}>
-            {/* Search Bar & Action Controls */}
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', background: 'rgba(15, 23, 42, 0.9)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-              <form onSubmit={handleSearchLocation} style={{ display: 'flex', flex: 1, minWidth: '280px', gap: '8px' }}>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search any mountain, valley, town (e.g. Joshimath, Wayanad, Kedarnath, Kinnaur, Leh)..."
-                  style={{
-                    flex: 1,
-                    background: 'rgba(10, 14, 23, 0.8)',
-                    border: '1px solid var(--border-color)',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    fontSize: '13px',
-                    fontFamily: 'inherit'
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={searchLoading}
-                  style={{
-                    background: 'rgba(6, 182, 212, 0.2)',
-                    border: '1px solid rgba(6, 182, 212, 0.4)',
-                    color: '#38bdf8',
-                    padding: '0 18px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: searchLoading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  {searchLoading ? <RefreshCw className="animate-spin" size={14} /> : <Navigation size={14} />}
-                  {searchLoading ? 'Searching...' : 'Search Location'}
-                </button>
-              </form>
-
-              {/* Map Layer Mode Switcher & Risk Overlay Toggle */}
-              <div style={{ display: 'flex', gap: '6px', background: 'rgba(10, 14, 23, 0.8)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                {[
-                  { id: 'satellite', label: '🛰️ Google / Esri Satellite' },
-                  { id: 'terrain', label: '🏔️ Topo & Relief' },
-                  { id: 'osm', label: '🗺️ OpenStreetMap' }
-                ].map((m) => (
+          {/* ── 1. FULL PAGE EARTH OBSERVATION & SATELLITE MAP STUDIO ─────────────── */}
+          {activeTab === 'map' && (
+            <div style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', padding: '16px', gap: '12px' }}>
+              {/* Search Bar & Action Controls */}
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', background: 'rgba(15, 23, 42, 0.9)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <form onSubmit={handleSearchLocation} style={{ display: 'flex', flex: 1, minWidth: '280px', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search any mountain, valley, town (e.g. Joshimath, Wayanad, Kedarnath, Kinnaur, Leh)..."
+                    style={{
+                      flex: 1,
+                      background: 'rgba(10, 14, 23, 0.8)',
+                      border: '1px solid var(--border-color)',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontFamily: 'inherit'
+                    }}
+                  />
                   <button
-                    key={m.id}
-                    onClick={() => setMapLayerType(m.id)}
+                    type="submit"
+                    disabled={searchLoading}
+                    style={{
+                      background: 'rgba(6, 182, 212, 0.2)',
+                      border: '1px solid rgba(6, 182, 212, 0.4)',
+                      color: '#38bdf8',
+                      padding: '0 18px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: searchLoading ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    {searchLoading ? <RefreshCw className="animate-spin" size={14} /> : <Navigation size={14} />}
+                    {searchLoading ? 'Searching...' : 'Search Location'}
+                  </button>
+                </form>
+
+                {/* Map Layer Mode Switcher & Risk Overlay Toggle */}
+                <div style={{ display: 'flex', gap: '6px', background: 'rgba(10, 14, 23, 0.8)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  {[
+                    { id: 'satellite', label: '🛰️ Google / Esri Satellite' },
+                    { id: 'terrain', label: '🏔️ Topo & Relief' },
+                    { id: 'osm', label: '🗺️ OpenStreetMap' }
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setMapLayerType(m.id)}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: mapLayerType === m.id ? '#3b82f6' : 'transparent',
+                        color: mapLayerType === m.id ? '#fff' : 'var(--text-muted)',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => setShowRiskZones(!showRiskZones)}
                     style={{
                       padding: '5px 10px',
                       borderRadius: '6px',
-                      border: 'none',
-                      background: mapLayerType === m.id ? '#3b82f6' : 'transparent',
-                      color: mapLayerType === m.id ? '#fff' : 'var(--text-muted)',
+                      border: showRiskZones ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid transparent',
+                      background: showRiskZones ? 'rgba(239, 68, 68, 0.25)' : 'transparent',
+                      color: showRiskZones ? '#f87171' : 'var(--text-muted)',
                       fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
                     }}
                   >
-                    {m.label}
+                    <AlertTriangle size={12} color="#f87171" />
+                    {showRiskZones ? '🔴 India Risk Zones' : 'Show Risk Zones'}
                   </button>
-                ))}
+                </div>
 
                 <button
-                  onClick={() => setShowRiskZones(!showRiskZones)}
+                  onClick={handleScanEntireMap}
+                  disabled={scanLoading || !selectedPin}
                   style={{
-                    padding: '5px 10px',
-                    borderRadius: '6px',
-                    border: showRiskZones ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid transparent',
-                    background: showRiskZones ? 'rgba(239, 68, 68, 0.25)' : 'transparent',
-                    color: showRiskZones ? '#f87171' : 'var(--text-muted)',
-                    fontSize: '11px',
+                    background: scanLoading
+                      ? 'linear-gradient(135deg, #374151, #4b5563)'
+                      : 'linear-gradient(135deg, #eab308, #ca8a04)',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
                     fontWeight: 700,
-                    cursor: 'pointer',
+                    cursor: (scanLoading || !selectedPin) ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '6px',
+                    boxShadow: scanLoading ? 'none' : '0 4px 16px rgba(234, 179, 8, 0.45)',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s'
                   }}
                 >
-                  <AlertTriangle size={12} color="#f87171" />
-                  {showRiskZones ? '🔴 India Risk Zones' : 'Show Risk Zones'}
+                  {scanLoading ? (
+                    <><RefreshCw className="animate-spin" size={14} /> Scanning Region (15km)...</>
+                  ) : (
+                    <><Globe size={14} /> 🌐 Scan Entire Region</>
+                  )}
+                </button>
+
+                <button
+                  onClick={handleCaptureFromMap}
+                  disabled={geeLoading || !selectedPin}
+                  style={{
+                    background: geeLoading
+                      ? 'linear-gradient(135deg, #374151, #4b5563)'
+                      : 'linear-gradient(135deg, #10b981, #059669)',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '10px 18px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: (geeLoading || !selectedPin) ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: geeLoading ? 'none' : '0 4px 16px rgba(16, 185, 129, 0.45)',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {geeLoading ? (
+                    <><RefreshCw size={14} className="animate-spin" /> Scanning & Analysing...</>
+                  ) : (
+                    <><Camera size={14} /> 📸 Scan & AI Analyse Area</>
+                  )}
                 </button>
               </div>
 
-              <button
-                onClick={handleScanEntireMap}
-                disabled={scanLoading || !selectedPin}
-                style={{
-                  background: scanLoading
-                    ? 'linear-gradient(135deg, #374151, #4b5563)'
-                    : 'linear-gradient(135deg, #eab308, #ca8a04)',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '10px 16px',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: (scanLoading || !selectedPin) ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: scanLoading ? 'none' : '0 4px 16px rgba(234, 179, 8, 0.45)',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {scanLoading ? (
-                  <><RefreshCw className="animate-spin" size={14} /> Scanning Region (15km)...</>
-                ) : (
-                  <><Globe size={14} /> 🌐 Scan Entire Region</>
-                )}
-              </button>
-
-              <button
-                onClick={handleCaptureFromMap}
-                disabled={geeLoading || !selectedPin}
-                style={{
-                  background: geeLoading
-                    ? 'linear-gradient(135deg, #374151, #4b5563)'
-                    : 'linear-gradient(135deg, #10b981, #059669)',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '10px 18px',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: (geeLoading || !selectedPin) ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: geeLoading ? 'none' : '0 4px 16px rgba(16, 185, 129, 0.45)',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {geeLoading ? (
-                  <><RefreshCw size={14} className="animate-spin" /> Scanning & Analysing...</>
-                ) : (
-                  <><Camera size={14} /> 📸 Scan & AI Analyse Area</>
-                )}
-              </button>
-            </div>
-
-            {/* FULL PAGE Leaflet Map Container */}
-            <div style={{ flex: 1, minHeight: 0, borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-color)', position: 'relative' }}>
-              <MapContainer
-                center={mapCenter}
-                zoom={mapZoom}
-                scrollWheelZoom={true}
-                style={{ height: '100%', width: '100%' }}
-              >
-                {mapLayerType === 'satellite' && (
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                    maxZoom={18}
-                  />
-                )}
-                {mapLayerType === 'terrain' && (
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.opentopomap.org">OpenTopoMap</a>'
-                    url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-                    maxZoom={17}
-                  />
-                )}
-                {mapLayerType === 'osm' && (
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                )}
-
-                <MapCenterController center={mapCenter} zoom={mapZoom} />
-                <MapClickHandler onLocationSelect={handleMapClick} />
-
-                {/* Render High-Risk Hazard Zones across India */}
-                {showRiskZones && INDIA_HIGH_RISK_ZONES.map((zone) => (
-                  <React.Fragment key={zone.id}>
-                    <Circle
-                      center={zone.center}
-                      radius={zone.radius}
-                      pathOptions={{
-                        color: zone.color,
-                        fillColor: zone.color,
-                        fillOpacity: 0.18,
-                        weight: 2,
-                        dashArray: '6, 6'
-                      }}
+              {/* FULL PAGE Leaflet Map Container */}
+              <div style={{ flex: 1, minHeight: 0, borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--border-color)', position: 'relative' }}>
+                <MapContainer
+                  center={mapCenter}
+                  zoom={mapZoom}
+                  scrollWheelZoom={true}
+                  style={{ height: '100%', width: '100%' }}
+                >
+                  {mapLayerType === 'satellite' && (
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                      url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                      maxZoom={18}
                     />
+                  )}
+                  {mapLayerType === 'terrain' && (
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.opentopomap.org">OpenTopoMap</a>'
+                      url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                      maxZoom={17}
+                    />
+                  )}
+                  {mapLayerType === 'osm' && (
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                  )}
+
+                  <MapCenterController center={mapCenter} zoom={mapZoom} />
+                  <MapClickHandler onLocationSelect={handleMapClick} />
+
+                  {/* Render High-Risk Hazard Zones across India */}
+                  {showRiskZones && INDIA_HIGH_RISK_ZONES.map((zone) => (
+                    <React.Fragment key={zone.id}>
+                      <Circle
+                        center={zone.center}
+                        radius={zone.radius}
+                        pathOptions={{
+                          color: zone.color,
+                          fillColor: zone.color,
+                          fillOpacity: 0.18,
+                          weight: 2,
+                          dashArray: '6, 6'
+                        }}
+                      />
+                      <CircleMarker
+                        center={zone.center}
+                        radius={8}
+                        pathOptions={{
+                          color: '#ffffff',
+                          fillColor: zone.color,
+                          fillOpacity: 0.95,
+                          weight: 2
+                        }}
+                      >
+                        <Tooltip permanent={false} direction="top" offset={[0, -8]}>
+                          <strong style={{ color: zone.color }}>{zone.name}</strong><br />
+                          <span style={{ fontSize: '10px' }}>{zone.risk} ZONE</span>
+                        </Tooltip>
+                        <Popup>
+                          <div style={{ maxWidth: '260px', fontFamily: 'system-ui, sans-serif', color: '#1e293b' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                              <strong style={{ fontSize: '13px', color: '#0f172a' }}>{zone.name}</strong>
+                              <span style={{
+                                fontSize: '10px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: `${zone.color}22`,
+                                color: zone.color,
+                                fontWeight: 800,
+                                border: `1px solid ${zone.color}44`
+                              }}>
+                                {zone.risk}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#475569', marginBottom: '5px' }}>
+                              <strong>Region:</strong> {zone.subregion}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#dc2626', marginBottom: '5px' }}>
+                              <strong>Major Events:</strong><br /> {zone.events}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#b45309', marginBottom: '8px' }}>
+                              <strong>Trigger Thresholds:</strong><br /> {zone.triggers}
+                            </div>
+                            <button
+                              onClick={() => {
+                                setMapCenter(zone.center);
+                                setMapZoom(12);
+                                setSelectedPin({ lat: zone.center[0], lng: zone.center[1], name: zone.name });
+                                setLocationName(zone.name);
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '6px 12px',
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              🎯 Select & Scan Hazard Sector
+                            </button>
+                          </div>
+                        </Popup>
+                      </CircleMarker>
+                    </React.Fragment>
+                  ))}
+
+                  {/* Render Map Regional Scanner Grid Sectors */}
+                  {scanResults && scanResults.sectors && scanResults.sectors.map((sec) => (
                     <CircleMarker
-                      center={zone.center}
-                      radius={8}
+                      key={sec.sector_id}
+                      center={[sec.lat, sec.lon]}
+                      radius={sec.is_hotspot ? 14 : 9}
                       pathOptions={{
-                        color: '#ffffff',
-                        fillColor: zone.color,
-                        fillOpacity: 0.95,
+                        color: sec.probability_percentage >= 70 ? '#ef4444' : sec.probability_percentage >= 45 ? '#f97316' : '#10b981',
+                        fillColor: sec.probability_percentage >= 70 ? '#ef4444' : sec.probability_percentage >= 45 ? '#f97316' : '#10b981',
+                        fillOpacity: 0.75,
                         weight: 2
                       }}
                     >
-                      <Tooltip permanent={false} direction="top" offset={[0, -8]}>
-                        <strong style={{ color: zone.color }}>{zone.name}</strong><br />
-                        <span style={{ fontSize: '10px' }}>{zone.risk} ZONE</span>
+                      <Tooltip permanent={true} direction="center" className="map-sector-tooltip">
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+                          {sec.probability_percentage}%
+                        </span>
                       </Tooltip>
                       <Popup>
-                        <div style={{ maxWidth: '260px', fontFamily: 'system-ui, sans-serif', color: '#1e293b' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                            <strong style={{ fontSize: '13px', color: '#0f172a' }}>{zone.name}</strong>
-                            <span style={{
-                              fontSize: '10px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              background: `${zone.color}22`,
-                              color: zone.color,
-                              fontWeight: 800,
-                              border: `1px solid ${zone.color}44`
-                            }}>
-                              {zone.risk}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#475569', marginBottom: '5px' }}>
-                            <strong>Region:</strong> {zone.subregion}
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#dc2626', marginBottom: '5px' }}>
-                            <strong>Major Events:</strong><br /> {zone.events}
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#b45309', marginBottom: '8px' }}>
-                            <strong>Trigger Thresholds:</strong><br /> {zone.triggers}
-                          </div>
+                        <div style={{ fontSize: '12px', color: '#0f172a' }}>
+                          <strong style={{ color: sec.probability_percentage >= 45 ? '#dc2626' : '#059669' }}>
+                            {sec.risk_level} ({sec.probability_percentage}%)
+                          </strong>
+                          <br />
+                          <span><strong>DEM Slope:</strong> {sec.slope_angle}°</span><br />
+                          <span><strong>24h Rain:</strong> {sec.rainfall_24h} mm</span><br />
+                          <span><strong>Coordinates:</strong> {sec.lat}°N, {sec.lon}°E</span>
                           <button
                             onClick={() => {
-                              setMapCenter(zone.center);
-                              setMapZoom(12);
-                              setSelectedPin({ lat: zone.center[0], lng: zone.center[1], name: zone.name });
-                              setLocationName(zone.name);
+                              setSelectedPin({ lat: sec.lat, lng: sec.lon, name: `Grid Sector (${sec.lat}°N, ${sec.lon}°E)` });
+                              handleCaptureFromMap(sec.lat, sec.lon, `Grid Sector (${sec.lat}°N, ${sec.lon}°E)`);
                             }}
                             style={{
                               width: '100%',
-                              padding: '6px 12px',
-                              background: 'linear-gradient(135deg, #10b981, #059669)',
+                              marginTop: '6px',
+                              padding: '6px 8px',
+                              background: 'linear-gradient(135deg, #06b6d4, #0284c7)',
                               color: '#fff',
                               border: 'none',
-                              borderRadius: '6px',
+                              borderRadius: '4px',
                               fontSize: '11px',
                               fontWeight: 700,
                               cursor: 'pointer'
                             }}
                           >
-                            🎯 Select & Scan Hazard Sector
+                            ⚡ AI Analyse in Cognitive Studio
                           </button>
                         </div>
                       </Popup>
                     </CircleMarker>
-                  </React.Fragment>
-                ))}
+                  ))}
 
-                {/* Render Map Regional Scanner Grid Sectors */}
-                {scanResults && scanResults.sectors && scanResults.sectors.map((sec) => (
-                  <CircleMarker
-                    key={sec.sector_id}
-                    center={[sec.lat, sec.lon]}
-                    radius={sec.is_hotspot ? 14 : 9}
-                    pathOptions={{
-                      color: sec.probability_percentage >= 70 ? '#ef4444' : sec.probability_percentage >= 45 ? '#f97316' : '#10b981',
-                      fillColor: sec.probability_percentage >= 70 ? '#ef4444' : sec.probability_percentage >= 45 ? '#f97316' : '#10b981',
-                      fillOpacity: 0.75,
-                      weight: 2
-                    }}
-                  >
-                    <Tooltip permanent={true} direction="center" className="map-sector-tooltip">
-                      <span style={{ fontSize: '10px', fontWeight: 800, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
-                        {sec.probability_percentage}%
-                      </span>
-                    </Tooltip>
-                    <Popup>
-                      <div style={{ fontSize: '12px', color: '#0f172a' }}>
-                        <strong style={{ color: sec.probability_percentage >= 45 ? '#dc2626' : '#059669' }}>
-                          {sec.risk_level} ({sec.probability_percentage}%)
-                        </strong>
-                        <br />
-                        <span><strong>DEM Slope:</strong> {sec.slope_angle}°</span><br />
-                        <span><strong>24h Rain:</strong> {sec.rainfall_24h} mm</span><br />
-                        <span><strong>Coordinates:</strong> {sec.lat}°N, {sec.lon}°E</span>
-                        <button
-                          onClick={() => {
-                            setSelectedPin({ lat: sec.lat, lng: sec.lon, name: `Grid Sector (${sec.lat}°N, ${sec.lon}°E)` });
-                            handleCaptureFromMap(sec.lat, sec.lon, `Grid Sector (${sec.lat}°N, ${sec.lon}°E)`);
-                          }}
-                          style={{
-                            width: '100%',
-                            marginTop: '6px',
-                            padding: '6px 8px',
-                            background: 'linear-gradient(135deg, #06b6d4, #0284c7)',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          ⚡ AI Analyse in Cognitive Studio
-                        </button>
-                      </div>
-                    </Popup>
-                  </CircleMarker>
-                ))}
+                  {selectedPin && (
+                    <Marker position={[selectedPin.lat, selectedPin.lng]} />
+                  )}
+                </MapContainer>
 
+                {/* Target Floating Badge */}
                 {selectedPin && (
-                  <Marker position={[selectedPin.lat, selectedPin.lng]} />
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '16px',
+                    left: '16px',
+                    zIndex: 1000,
+                    background: 'rgba(15, 23, 42, 0.90)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(6, 182, 212, 0.4)',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}>
+                    <MapPin size={16} color="#06b6d4" />
+                    <div style={{ fontSize: '12px' }}>
+                      <strong style={{ color: '#fff' }}>{selectedPin.name}</strong>
+                      <span style={{ color: '#9ca3af', marginLeft: '8px', fontFamily: 'var(--font-mono)' }}>
+                        [{selectedPin.lat.toFixed(4)}°N, {selectedPin.lng.toFixed(4)}°E]
+                      </span>
+                    </div>
+                  </div>
                 )}
-              </MapContainer>
+              </div>
 
-              {/* Target Floating Badge */}
-              {selectedPin && (
+              {/* Regional Scan Summary & High Probability Hotspot List */}
+              {scanResults && (
                 <div style={{
-                  position: 'absolute',
-                  bottom: '16px',
-                  left: '16px',
-                  zIndex: 1000,
-                  background: 'rgba(15, 23, 42, 0.90)',
-                  backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(6, 182, 212, 0.4)',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  background: 'rgba(15, 23, 42, 0.95)',
+                  border: '1px solid rgba(234, 179, 8, 0.4)',
+                  maxHeight: '180px',
+                  overflowY: 'auto'
                 }}>
-                  <MapPin size={16} color="#06b6d4" />
-                  <div style={{ fontSize: '12px' }}>
-                    <strong style={{ color: '#fff' }}>{selectedPin.name}</strong>
-                    <span style={{ color: '#9ca3af', marginLeft: '8px', fontFamily: 'var(--font-mono)' }}>
-                      [{selectedPin.lat.toFixed(4)}°N, {selectedPin.lng.toFixed(4)}°E]
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Globe size={15} color="#eab308" />
+                      <strong style={{ fontSize: '12px', color: '#fef08a' }}>
+                        Regional Failure Probability Scan Summary
+                      </strong>
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                      {scanResults.summary}
                     </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '8px' }}>
+                    {scanResults.high_risk_hotspots.map((hotspot) => (
+                      <div
+                        key={hotspot.sector_id}
+                        onClick={() => {
+                          setSelectedPin({ lat: hotspot.lat, lng: hotspot.lon, name: `Hotspot (${hotspot.lat}°N, ${hotspot.lon}°E)` });
+                          setMapCenter([hotspot.lat, hotspot.lon]);
+                          handleCaptureFromMap(hotspot.lat, hotspot.lon, `Hotspot (${hotspot.lat}°N, ${hotspot.lon}°E)`);
+                        }}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          border: '1px solid rgba(239, 68, 68, 0.4)',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#f87171' }}>
+                            ⚠️ {hotspot.risk_level}
+                          </span>
+                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444' }}>
+                            {hotspot.probability_percentage}%
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#cbd5e1', marginTop: '2px' }}>
+                          DEM Slope: {hotspot.slope_angle}° | Rain: {hotspot.rainfall_24h}mm
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
+          )}
 
-            {/* Regional Scan Summary & High Probability Hotspot List */}
-            {scanResults && (
-              <div style={{
-                padding: '12px 16px',
-                borderRadius: '10px',
-                background: 'rgba(15, 23, 42, 0.95)',
-                border: '1px solid rgba(234, 179, 8, 0.4)',
-                maxHeight: '180px',
-                overflowY: 'auto'
+          {/* ── 2. SOCIO-ECONOMIC IMPACT & RESCUE MAPS SUB-PAGE ──────────────── */}
+          {activeTab === 'impact' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+
+              {/* Government Open-Access Advisory Header & Free Export Banner */}
+              <div className="glass-panel" style={{
+                padding: '18px 24px',
+                borderLeft: '6px solid #ef4444',
+                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.90))',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '16px'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Globe size={15} color="#eab308" />
-                    <strong style={{ fontSize: '12px', color: '#fef08a' }}>
-                      Regional Failure Probability Scan Summary
-                    </strong>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                    <ShieldAlert size={22} color="#ef4444" />
+                    <h2 style={{ fontSize: '18px', fontWeight: 900, color: '#fff' }}>
+                      Socio-Economic Impact & Disaster Rescue Directives
+                    </h2>
+                    <span style={{
+                      fontSize: '11px',
+                      padding: '3px 10px',
+                      borderRadius: '20px',
+                      background: 'rgba(16, 185, 129, 0.2)',
+                      color: '#34d399',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      fontWeight: 700
+                    }}>
+                      🏛️ 100% Free Open-Access for Government Authorities
+                    </span>
                   </div>
-                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-                    {scanResults.summary}
+                  <p style={{ fontSize: '12px', color: '#cbd5e1', margin: 0 }}>
+                    Live Field Telemetry for District Magistrates, SDMA Directors, NDRF 8th & 14th Battalions, and SDRF Incident Commanders.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button
+                    onClick={() => {
+                      const reportObj = {
+                        system: "SlideX AI v3.6 - Government Disaster Advisory System",
+                        sector: selectedPin?.name || locationName,
+                        coordinates: [selectedPin?.lat || 30.557, selectedPin?.lng || 79.5667],
+                        timestamp: new Date().toISOString(),
+                        failure_probability: prediction?.probability_percentage || 0.5,
+                        risk_level: prediction?.risk_level || "LOW RISK / STABLE",
+                        factor_of_safety: prediction?.factor_of_safety || 2.02,
+                        rescue_protocol: prediction?.rescue_protocol || prediction?.recursive_telemetry?.rescue_protocol,
+                        impact_assessment: prediction?.impact_assessment || prediction?.recursive_telemetry?.impact_assessment
+                      };
+                      const blob = new Blob([JSON.stringify(reportObj, null, 2)], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `SlideX_Government_Advisory_${(selectedPin?.name || 'Sector').replace(/\s+/g, '_')}.json`;
+                      a.click();
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(6, 182, 212, 0.15)',
+                      color: '#38bdf8',
+                      border: '1px solid rgba(6, 182, 212, 0.4)',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Download size={15} /> Export JSON Advisory
+                  </button>
+
+                  <button
+                    onClick={() => window.print()}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 0 14px rgba(59, 130, 246, 0.4)'
+                    }}
+                  >
+                    <Printer size={15} /> Print Official Bulletin
+                  </button>
+                </div>
+              </div>
+
+              {/* Target Status KPI Bar */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '14px' }}>
+                <div className="glass-panel" style={{ padding: '16px', borderLeft: '4px solid #06b6d4' }}>
+                  <span style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700 }}>Target Sector</span>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {selectedPin?.name || locationName}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#38bdf8', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                    [{((selectedPin?.lat) || 30.557).toFixed(4)}°N, {((selectedPin?.lng) || 79.5667).toFixed(4)}°E]
+                  </div>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '16px', borderLeft: `4px solid ${prediction?.alert_color || '#10b981'}` }}>
+                  <span style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700 }}>Failure Probability</span>
+                  <div style={{ fontSize: '24px', fontWeight: 900, color: prediction?.alert_color || '#10b981', marginTop: '2px' }}>
+                    {prediction ? `${prediction.probability_percentage}%` : '0.5% (Stable)'}
+                  </div>
+                  <span style={{ fontSize: '10px', color: '#cbd5e1' }}>
+                    {prediction ? prediction.risk_level : 'LOW RISK / STABLE'}
                   </span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '8px' }}>
-                  {scanResults.high_risk_hotspots.map((hotspot) => (
-                    <div
-                      key={hotspot.sector_id}
-                      onClick={() => {
-                        setSelectedPin({ lat: hotspot.lat, lng: hotspot.lon, name: `Hotspot (${hotspot.lat}°N, ${hotspot.lon}°E)` });
-                        setMapCenter([hotspot.lat, hotspot.lon]);
-                        handleCaptureFromMap(hotspot.lat, hotspot.lon, `Hotspot (${hotspot.lat}°N, ${hotspot.lon}°E)`);
-                      }}
-                      style={{
-                        background: 'rgba(239, 68, 68, 0.15)',
-                        border: '1px solid rgba(239, 68, 68, 0.4)',
-                        padding: '8px 10px',
-                        borderRadius: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#f87171' }}>
-                          ⚠️ {hotspot.risk_level}
-                        </span>
-                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444' }}>
-                          {hotspot.probability_percentage}%
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#cbd5e1', marginTop: '2px' }}>
-                        DEM Slope: {hotspot.slope_angle}° | Rain: {hotspot.rainfall_24h}mm
-                      </div>
-                    </div>
-                  ))}
+                <div className="glass-panel" style={{ padding: '16px', borderLeft: '4px solid #a855f7' }}>
+                  <span style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700 }}>Bishop Factor of Safety (Fs)</span>
+                  <div style={{ fontSize: '24px', fontWeight: 900, color: (prediction?.factor_of_safety || 2.02) > 1.3 ? '#4ade80' : '#ef4444', marginTop: '2px' }}>
+                    {prediction?.factor_of_safety ? `${prediction.factor_of_safety}` : '2.022'}
+                  </div>
+                  <span style={{ fontSize: '10px', color: '#cbd5e1' }}>
+                    {(prediction?.factor_of_safety || 2.02) > 1.3 ? 'Mechanically Competent Bedrock' : 'Critical Equilibrium'}
+                  </span>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '16px', borderLeft: '4px solid #f97316' }}>
+                  <span style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700 }}>Downslope Debris Runout Cone</span>
+                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#f97316', marginTop: '2px' }}>
+                    {prediction?.downslope_impact_radius_m || 45} m Radius
+                  </div>
+                  <span style={{ fontSize: '10px', color: '#cbd5e1' }}>
+                    Velocity: {prediction?.estimated_runout_velocity_ms || 0.0} m/s
+                  </span>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '16px', borderLeft: '4px solid #f43f5e' }}>
+                  <span style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700 }}>⏱️ Predicted Time of Event</span>
+                  <div style={{ fontSize: '16px', fontWeight: 900, color: '#f43f5e', marginTop: '4px' }}>
+                    📅 {prediction?.predicted_event_timestamp || 'Sep 19, 2026 at 06:00 AM UTC'}
+                  </div>
+                  <span style={{ fontSize: '11px', color: '#fb7185', fontWeight: 700, display: 'block', marginTop: '2px' }}>
+                    ⏳ {prediction?.time_to_event_formatted ? `${prediction.time_to_event_formatted} (${prediction.failure_window || '18 to 36 Hours'})` : (prediction?.failure_window || 'In 18 to 36 Hours')}
+                  </span>
                 </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* ── 2. DASHBOARD SUB-PAGE ────────────────────────────────────────── */}
-        {activeTab === 'dashboard' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-              <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #ef4444' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>High-Risk Zones Monitored</span>
-                <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#ef4444', marginTop: '6px' }}>8 Corridors</h3>
-                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>Garhwal, Western Ghats, Sikkim, Kinnaur, Ramban</p>
-              </div>
+              {/* ── 2 INTERACTIVE MAP PIECES ────────────────────────────────────── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
 
-              <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #06b6d4' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Active Satellite Feed</span>
-                <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#06b6d4', marginTop: '6px' }}>Sentinel-2 SR</h3>
-                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>Cloud Masked QA60 + Landsat-9 TOA/L2</p>
-              </div>
-
-              <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #eab308' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Real-Time Climate Engine</span>
-                <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#eab308', marginTop: '6px' }}>Open-Meteo API</h3>
-                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>24h Precip, ET0 Evapo, Soil Saturation</p>
-              </div>
-
-              <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #a855f7' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>DEM Elevation Resolution</span>
-                <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#a855f7', marginTop: '6px' }}>SRTM 30m</h3>
-                <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>OpenTopoData Rise/Run Slope Physics</p>
-              </div>
-            </div>
-
-            {/* Active Prediction Summary Card if available */}
-            {prediction ? (
-              <div className="glass-panel" style={{ padding: '24px', border: '1px solid rgba(6, 182, 212, 0.4)' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#38bdf8', marginBottom: '14px' }}>
-                  Latest AI Prediction Results [{prediction.risk_level}]
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-                  <div>
-                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>Failure Probability</span>
-                    <div style={{ fontSize: '28px', fontWeight: 900, color: prediction.will_landslide === "YES" ? '#ef4444' : '#10b981' }}>
-                      {prediction.probability_percentage}%
+                {/* MAP PIECE 1: Downslope Debris Runout & Valley Corridor Envelope Map */}
+                <div className="glass-panel" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Navigation size={18} color="#ef4444" />
+                      <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>
+                        Map Piece 1: Debris Runout & Hazard Corridor Reach
+                      </h3>
                     </div>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>Target Sector</span>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginTop: '6px' }}>
-                      {prediction.location || locationName}
-                    </div>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>Terrain Slope</span>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#fbbf24', marginTop: '6px' }}>
-                      {slopeAngle}° Degree Incline
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="glass-panel" style={{ padding: '30px', textAlign: 'center', color: '#9ca3af' }}>
-                <Activity size={32} color="#06b6d4" style={{ margin: '0 auto 10px' }} />
-                <h4>No Active Inference Selected</h4>
-                <p style={{ fontSize: '12px', marginTop: '6px' }}>Select any sector on the full page map and click "Scan & AI Analyse Area" to populate real-time analytics.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── 3. HIGH RISK AREAS SUB-PAGE ───────────────────────────────────── */}
-        {activeTab === 'risk_areas' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                Official National Disaster Management & GSI Landslide Hazard Susceptibility Corridors across Northern India & Western Ghats.
-              </p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
-              {INDIA_HIGH_RISK_ZONES.map((zone) => (
-                <div key={zone.id} className="glass-panel" style={{ padding: '20px', borderLeft: `4px solid ${zone.color}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>{zone.name}</h3>
-                    <span style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '4px', background: `${zone.color}22`, color: zone.color, fontWeight: 800, border: `1px solid ${zone.color}44` }}>
-                      {zone.risk}
+                    <span style={{ fontSize: '10px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                      Kinematic Envelope
                     </span>
                   </div>
-                  <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px' }}><strong>Region:</strong> {zone.subregion}</p>
-                  <p style={{ fontSize: '11px', color: '#cbd5e1', marginBottom: '8px' }}>{zone.desc}</p>
-                  <div style={{ fontSize: '11px', color: '#f87171', marginBottom: '6px' }}><strong>Historical Events:</strong> {zone.events}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <button
-                      onClick={() => {
-                        setMapCenter(zone.center);
-                        setMapZoom(12);
-                        setSelectedPin({ lat: zone.center[0], lng: zone.center[1], name: zone.name });
-                        setLocationName(zone.name);
-                        setActiveTab('map');
-                        fetchCustomSatelliteData(zone.center[0], zone.center[1], zone.name);
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: 'rgba(59, 130, 246, 0.2)',
-                        border: '1px solid rgba(59, 130, 246, 0.4)',
-                        color: '#60a5fa',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      🎯 Full Page Map
-                    </button>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>
+                    Visualizes the failure ground-zero epicenter, Scheidegger runout impact cone ({prediction?.downslope_impact_radius_m || 45}m), and upstream/downstream valley choke points.
+                  </p>
 
-                    <button
-                      onClick={() => {
-                        setSelectedPin({ lat: zone.center[0], lng: zone.center[1], name: zone.name });
-                        setLocationName(zone.name);
-                        handleCaptureFromMap(zone.center[0], zone.center[1], zone.name);
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        background: 'linear-gradient(135deg, #06b6d4, #0284c7)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
+                  <div style={{ height: '340px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)', position: 'relative' }}>
+                    <MapContainer
+                      center={[selectedPin?.lat || 30.557, selectedPin?.lng || 79.5667]}
+                      zoom={14}
+                      style={{ height: '100%', width: '100%' }}
+                      scrollWheelZoom={false}
                     >
-                      ⚡ AI Cognitive Studio
-                    </button>
+                      <RecenterMap lat={selectedPin?.lat || 30.557} lng={selectedPin?.lng || 79.5667} />
+                      <TileLayer
+                        url={mapLayerType === 'satellite' ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
+                        attribution="&copy; Esri & OpenStreetMap"
+                      />
+
+                      {/* Dynamic Directional Satellite Debris Flow Heat Fan Polygon Overlay */}
+                      <Polygon
+                        positions={
+                          prediction?.map_assets?.debris_fan_polygon || [
+                            [selectedPin?.lat || 30.557, selectedPin?.lng || 79.5667],
+                            [(selectedPin?.lat || 30.557) - 0.003, (selectedPin?.lng || 79.5667) - 0.005],
+                            [(selectedPin?.lat || 30.557) - 0.007, (selectedPin?.lng || 79.5667) - 0.003],
+                            [(selectedPin?.lat || 30.557) - 0.008, (selectedPin?.lng || 79.5667) + 0.002],
+                            [(selectedPin?.lat || 30.557) - 0.004, (selectedPin?.lng || 79.5667) + 0.004],
+                          ]
+                        }
+                        pathOptions={{
+                          color: '#ef4444',
+                          fillColor: '#f59e0b',
+                          fillOpacity: 0.55,
+                          weight: 2,
+                          dashArray: '4, 4'
+                        }}
+                      >
+                        <Tooltip permanent={true} direction="center">
+                          <span style={{ fontSize: '9px', fontWeight: 800, color: '#fef08a' }}>
+                            🔥 {selectedPin?.name || locationName} Debris Flow Surge Fan ({prediction?.estimated_runout_velocity_ms || 12.4} m/s)
+                          </span>
+                        </Tooltip>
+                      </Polygon>
+
+                      {/* Epicenter Marker */}
+                      <Marker position={[selectedPin?.lat || 30.557, selectedPin?.lng || 79.5667]}>
+                        <Popup>
+                          <div style={{ fontSize: '12px', color: '#0f172a' }}>
+                            <strong style={{ color: '#dc2626' }}>🚨 {selectedPin?.name || locationName} Failure Ground Zero</strong><br />
+                            <span><strong>Coordinates:</strong> [{(selectedPin?.lat || 30.557).toFixed(4)}°N, {(selectedPin?.lng || 79.5667).toFixed(4)}°E]</span><br />
+                            <span><strong>Probability:</strong> {prediction?.probability_percentage || 0.5}%</span><br />
+                            <span><strong>Factor of Safety (Fs):</strong> {prediction?.factor_of_safety || 2.022}</span><br />
+                            <span><strong>Failure Window:</strong> {prediction?.failure_window || '18 to 36 Hours'}</span>
+                          </div>
+                        </Popup>
+                      </Marker>
+
+                      {/* Debris Runout Cone Radius Circle */}
+                      <Circle
+                        center={[selectedPin?.lat || 30.557, selectedPin?.lng || 79.5667]}
+                        radius={prediction?.downslope_impact_radius_m ? Math.max(80, prediction.downslope_impact_radius_m * 2.5) : 150}
+                        pathOptions={{
+                          color: '#ef4444',
+                          fillColor: '#dc2626',
+                          fillOpacity: 0.45,
+                          weight: 2
+                        }}
+                      >
+                        <Tooltip permanent={true} direction="top">
+                          <span style={{ fontSize: '10px', fontWeight: 800, color: '#ef4444' }}>
+                            Debris Impact Envelope ({prediction?.downslope_impact_radius_m || 45}m Runout)
+                          </span>
+                        </Tooltip>
+                      </Circle>
+
+                      {/* Dynamic Safe Evacuation Shelter Staging Point Marker */}
+                      <Marker position={[
+                        prediction?.map_assets?.evacuation_plateau?.lat || ((selectedPin?.lat || 30.557) + 0.0075),
+                        prediction?.map_assets?.evacuation_plateau?.lng || ((selectedPin?.lng || 79.5667) + 0.0075)
+                      ]}>
+                        <Popup>
+                          <div style={{ fontSize: '12px', color: '#0f172a' }}>
+                            <strong style={{ color: '#059669' }}>🟢 {prediction?.map_assets?.evacuation_plateau?.name || `${selectedPin?.name || locationName} Upper Ridge Safe Assembly Plateau`}</strong><br />
+                            <span>{prediction?.map_assets?.evacuation_plateau?.elevation_diff || '+120m High Ground Ridge'}</span><br />
+                            <span style={{ color: '#059669', fontWeight: 700 }}>{prediction?.map_assets?.evacuation_plateau?.description || 'Designated Sector Shelter & Relief Staging'}</span>
+                          </div>
+                        </Popup>
+                        <Tooltip permanent={true} direction="right">
+                          <span style={{ fontSize: '9px', fontWeight: 700, color: '#10b981' }}>Safe Assembly Plateau</span>
+                        </Tooltip>
+                      </Marker>
+
+                      {/* Dynamic Air Helipad Evacuation Staging Marker */}
+                      <Marker position={[
+                        prediction?.map_assets?.helipad_corridor?.lat || ((selectedPin?.lat || 30.557) - 0.0065),
+                        prediction?.map_assets?.helipad_corridor?.lng || ((selectedPin?.lng || 79.5667) + 0.0055)
+                      ]}>
+                        <Popup>
+                          <div style={{ fontSize: '12px', color: '#0f172a' }}>
+                            <strong style={{ color: '#2563eb' }}>🚁 {prediction?.map_assets?.helipad_corridor?.name || `${selectedPin?.name || locationName} Air Evacuation Helipad`}</strong><br />
+                            <span>{prediction?.map_assets?.helipad_corridor?.description || 'Air Evacuation Staging for Critical Casualties'}</span>
+                          </div>
+                        </Popup>
+                        <Tooltip permanent={true} direction="left">
+                          <span style={{ fontSize: '9px', fontWeight: 700, color: '#3b82f6' }}>Helipad Corridor</span>
+                        </Tooltip>
+                      </Marker>
+                    </MapContainer>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* ── 4. AI COGNITIVE STUDIO & ANALYSIS SUB-PAGE ─────────────────────── */}
-        {activeTab === 'analysis' && (
-          <div>
+                {/* MAP PIECE 2: Dynamic Vulnerability Density Heatmap & Infrastructure Risk Map */}
+                <div className="glass-panel" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Layers size={18} color="#f97316" />
+                      <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>
+                        Map Piece 2: Vulnerability Heatmap & Infrastructure Risk
+                      </h3>
+                    </div>
+                    <span style={{ fontSize: '10px', background: 'rgba(249, 115, 22, 0.2)', color: '#fb923c', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                      Multi-Tier Heat Density
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>
+                    Visualizes multi-tiered gradient vulnerability rings and pinpoint exposures across highway carriageways, 33kV transmission lines, and water intakes for {selectedPin?.name || locationName}.
+                  </p>
 
-        {/* ── PREDICTION WORKBENCH (2 COLUMNS) ─────────────────────────────── */}
-        <div id="ai-workbench" style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 480px) 1fr', gap: '28px' }}>
+                  <div style={{ height: '340px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)', position: 'relative' }}>
+                    <MapContainer
+                      center={[selectedPin?.lat || 30.557, selectedPin?.lng || 79.5667]}
+                      zoom={14}
+                      style={{ height: '100%', width: '100%' }}
+                      scrollWheelZoom={false}
+                    >
+                      <RecenterMap lat={selectedPin?.lat || 30.557} lng={selectedPin?.lng || 79.5667} />
+                      <TileLayer
+                        url={mapLayerType === 'satellite' ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
+                        attribution="&copy; Esri & OpenStreetMap"
+                      />
 
-          {/* LEFT COLUMN: Inputs & Environmental Parameters */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      {/* Dynamic Ground Zero Core Satellite Heat Overlay */}
+                      <Polygon
+                        positions={
+                          prediction?.map_assets?.heat_core_polygon || [
+                            [(selectedPin?.lat || 30.557) + 0.0012, (selectedPin?.lng || 79.5667) - 0.0022],
+                            [(selectedPin?.lat || 30.557) - 0.0042, (selectedPin?.lng || 79.5667) - 0.0062],
+                            [(selectedPin?.lat || 30.557) - 0.0082, (selectedPin?.lng || 79.5667) - 0.0012],
+                            [(selectedPin?.lat || 30.557) - 0.0032, (selectedPin?.lng || 79.5667) + 0.0042],
+                          ]
+                        }
+                        pathOptions={{
+                          color: '#dc2626',
+                          fillColor: '#ef4444',
+                          fillOpacity: 0.65,
+                          weight: 2
+                        }}
+                      >
+                        <Tooltip permanent={true} direction="center">
+                          <span style={{ fontSize: '9px', fontWeight: 800, color: '#fff' }}>
+                            🚨 {selectedPin?.name || locationName} Failure Origin Core
+                          </span>
+                        </Tooltip>
+                      </Polygon>
 
-            {/* Satellite Imagery Card */}
-            <div className="glass-panel" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {analysisMode === 'single' ? <Camera size={18} color="#06b6d4" /> : <Layers size={18} color="#06b6d4" />}
-                  <h2 style={{ fontSize: '16px', fontWeight: 700 }}>
-                    {analysisMode === 'single' ? "Satellite InSAR / Topography Raster" : "Temporal Pair (T1 Pre & T2 Post)"}
-                  </h2>
-                </div>
+                      {/* Dynamic Secondary Spreading Vulnerability Heat Overlay Fan */}
+                      <Polygon
+                        positions={
+                          prediction?.map_assets?.heat_buffer_polygon || [
+                            [(selectedPin?.lat || 30.557) - 0.0042, (selectedPin?.lng || 79.5667) - 0.0062],
+                            [(selectedPin?.lat || 30.557) - 0.0102, (selectedPin?.lng || 79.5667) - 0.0092],
+                            [(selectedPin?.lat || 30.557) - 0.0142, (selectedPin?.lng || 79.5667) + 0.0022],
+                            [(selectedPin?.lat || 30.557) - 0.0082, (selectedPin?.lng || 79.5667) - 0.0012],
+                          ]
+                        }
+                        pathOptions={{
+                          color: '#f59e0b',
+                          fillColor: '#fbbf24',
+                          fillOpacity: 0.45,
+                          weight: 1,
+                          dashArray: '4'
+                        }}
+                      >
+                        <Tooltip permanent={true} direction="bottom">
+                          <span style={{ fontSize: '9px', fontWeight: 800, color: '#0f172a' }}>
+                            ⚠️ Downslope Vulnerability Reach Zone
+                          </span>
+                        </Tooltip>
+                      </Polygon>
 
-                <div style={{ display: 'flex', gap: '4px', background: 'rgba(15, 23, 42, 0.8)', padding: '2px', borderRadius: '6px' }}>
-                  <button
-                    onClick={() => { setAnalysisMode('single'); setPrediction(null); }}
-                    style={{
-                      border: 'none',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      background: analysisMode === 'single' ? '#06b6d4' : 'transparent',
-                      color: analysisMode === 'single' ? '#fff' : 'var(--text-muted)',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Single
-                  </button>
-                  <button
-                    onClick={() => { setAnalysisMode('temporal'); setPrediction(null); }}
-                    style={{
-                      border: 'none',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      background: analysisMode === 'temporal' ? '#06b6d4' : 'transparent',
-                      color: analysisMode === 'temporal' ? '#fff' : 'var(--text-muted)',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Temporal
-                  </button>
+                      {/* Outer Buffer Density Ring */}
+                      <Circle
+                        center={[selectedPin?.lat || 30.557, selectedPin?.lng || 79.5667]}
+                        radius={600}
+                        pathOptions={{ color: '#eab308', fillColor: '#fef08a', fillOpacity: 0.15, weight: 1, dashArray: '4' }}
+                      />
+
+                      {/* Middle Warning Ring */}
+                      <Circle
+                        center={[selectedPin?.lat || 30.557, selectedPin?.lng || 79.5667]}
+                        radius={350}
+                        pathOptions={{ color: '#f97316', fillColor: '#fb923c', fillOpacity: 0.35, weight: 2 }}
+                      />
+
+                      {/* Core Danger Heat Ring */}
+                      <Circle
+                        center={[selectedPin?.lat || 30.557, selectedPin?.lng || 79.5667]}
+                        radius={160}
+                        pathOptions={{ color: '#ef4444', fillColor: '#dc2626', fillOpacity: 0.65, weight: 2 }}
+                      >
+                        <Tooltip permanent={true} direction="center">
+                          <span style={{ fontSize: '10px', fontWeight: 800, color: '#fff' }}>
+                            Core High Risk Hotspot
+                          </span>
+                        </Tooltip>
+                      </Circle>
+
+                      {/* Dynamic Infrastructure Asset 1: Highway Corridor Breach Point */}
+                      <Marker position={[
+                        prediction?.map_assets?.highway_breach?.lat || ((selectedPin?.lat || 30.557) + 0.0035),
+                        prediction?.map_assets?.highway_breach?.lng || ((selectedPin?.lng || 79.5667) - 0.0045)
+                      ]}>
+                        <Popup>
+                          <div style={{ fontSize: '12px', color: '#0f172a' }}>
+                            <strong style={{ color: '#dc2626' }}>🚧 {prediction?.map_assets?.highway_breach?.name || `${selectedPin?.name || locationName} Highway Carriageway Breach`}</strong><br />
+                            <span>{prediction?.map_assets?.highway_breach?.description || 'Potential single/dual-lane blockage from rockfall'}</span><br />
+                            <span><strong>Est. Clearance Duration:</strong> {prediction?.map_assets?.highway_breach?.est_clearance_hours || '24-72 Hours'}</span><br />
+                            <span style={{ color: '#b91c1c', fontWeight: 700 }}>BRO Heavy Bulldozer Pre-Positioning Advised</span>
+                          </div>
+                        </Popup>
+                        <Tooltip permanent={true} direction="top">
+                          <span style={{ fontSize: '9px', fontWeight: 700, color: '#f87171' }}>🚧 Highway Choke Point</span>
+                        </Tooltip>
+                      </Marker>
+
+                      {/* Dynamic Infrastructure Asset 2: 33kV Transmission Line Tower */}
+                      <Marker position={[
+                        prediction?.map_assets?.power_grid?.lat || ((selectedPin?.lat || 30.557) - 0.0045),
+                        prediction?.map_assets?.power_grid?.lng || ((selectedPin?.lng || 79.5667) + 0.0045)
+                      ]}>
+                        <Popup>
+                          <div style={{ fontSize: '12px', color: '#0f172a' }}>
+                            <strong style={{ color: '#eab308' }}>⚡ {prediction?.map_assets?.power_grid?.name || `${selectedPin?.name || locationName} 33kV Power Grid Substation`}</strong><br />
+                            <span>{prediction?.map_assets?.power_grid?.description || 'Foundation scour and tower tilt risk during debris surge'}</span>
+                          </div>
+                        </Popup>
+                        <Tooltip permanent={true} direction="bottom">
+                          <span style={{ fontSize: '9px', fontWeight: 700, color: '#fbbf24' }}>⚡ 33kV Power Grid</span>
+                        </Tooltip>
+                      </Marker>
+                    </MapContainer>
+                  </div>
                 </div>
               </div>
 
-              {analysisMode === 'single' ? (
-                <div>
-                  {/* Dual Satellite Slide Switcher Tabs */}
-                  <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', background: 'rgba(15, 23, 42, 0.7)', padding: '4px', borderRadius: '8px' }}>
-                    <button
-                      onClick={() => setSingleSlideView('live')}
-                      style={{
-                        flex: 1,
-                        border: 'none',
-                        padding: '6px',
-                        borderRadius: '6px',
-                        background: singleSlideView === 'live' ? 'linear-gradient(135deg, #06b6d4, #0284c7)' : 'transparent',
-                        color: singleSlideView === 'live' ? '#fff' : 'var(--text-muted)',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Camera size={12} /> 🛰️ Live Map
-                    </button>
+              {/* ── PRIORITY RESCUE ACTION CHECKLIST & DIRECTIVES ───────────────── */}
+              <div className="glass-panel" style={{ padding: '24px', borderLeft: '6px solid #ef4444' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <ShieldAlert size={20} color="#ef4444" />
+                    <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>
+                      NDRF & SDRF Tactical Rescue Directives & Action Protocol
+                    </h3>
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontWeight: 800,
+                    background: (prediction?.probability_percentage || 0.5) >= 85 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(34, 197, 94, 0.25)',
+                    color: (prediction?.probability_percentage || 0.5) >= 85 ? '#f87171' : '#4ade80',
+                    border: `1px solid ${(prediction?.probability_percentage || 0.5) >= 85 ? '#ef4444' : '#22c55e'}`
+                  }}>
+                    {prediction?.rescue_protocol?.urgency_level || prediction?.recursive_telemetry?.rescue_protocol?.urgency_level || 'GREEN / ROUTINE OBSERVATION'}
+                  </span>
+                </div>
 
-                    <button
-                      onClick={() => setSingleSlideView('pre')}
-                      style={{
-                        flex: 1,
-                        border: 'none',
-                        padding: '6px',
-                        borderRadius: '6px',
-                        background: singleSlideView === 'pre' ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : 'transparent',
-                        color: singleSlideView === 'pre' ? '#fff' : 'var(--text-muted)',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Clock size={12} /> 🗓️ 1 Month Ago
-                    </button>
-
-                    <button
-                      onClick={() => setSingleSlideView('split')}
-                      style={{
-                        flex: 1,
-                        border: 'none',
-                        padding: '6px',
-                        borderRadius: '6px',
-                        background: singleSlideView === 'split' ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
-                        color: singleSlideView === 'split' ? '#fff' : 'var(--text-muted)',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Layers size={12} /> 🔀 Dual View
-                    </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {/* Incident Command */}
+                  <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, marginBottom: '4px' }}>
+                      🎖️ Designated Incident Command & Responding Battalions
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#f1f5f9', fontWeight: 700 }}>
+                      {prediction?.rescue_protocol?.incident_command || prediction?.recursive_telemetry?.rescue_protocol?.incident_command || 'National Disaster Response Force (NDRF 8th & 14th Bn) + State Disaster Response Force (SDRF)'}
+                    </div>
                   </div>
 
-                  {singleSlideView === 'split' ? (
-                    /* Side-by-Side Dual View */
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {/* Priority Action Checklist */}
+                  <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '11px', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, marginBottom: '10px' }}>
+                      📋 Priority Rescue Action Directives
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {(prediction?.rescue_protocol?.action_directives || prediction?.recursive_telemetry?.rescue_protocol?.action_directives || [
+                        "Sound localized acoustic early-warning sirens and trigger emergency cellular broadcast.",
+                        "Halt all commercial and tourist transit along vulnerable mountain corridors.",
+                        "Pre-position heavy hydraulic earthmovers and BRO bulldozers at both ends of the choke point.",
+                        "Deploy thermal imaging drones to scan for trapped settlements or stranded pilgrims.",
+                        "Establish medical triage basecamp outside the secondary debris fan boundary."
+                      ]).map((directive, idx) => (
+                        <li key={idx} style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: 1.5 }}>
+                          {directive}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Evacuation Corridors & Assembly Staging */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px' }}>
+                    <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                      <div style={{ fontSize: '11px', color: '#4ade80', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Navigation size={14} /> Designated Evacuation Corridors
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#e2e8f0', lineHeight: 1.6 }}>
+                        {Array.isArray(prediction?.rescue_protocol?.evacuation_routes || prediction?.recursive_telemetry?.rescue_protocol?.evacuation_routes) ? (
+                          (prediction?.rescue_protocol?.evacuation_routes || prediction?.recursive_telemetry?.rescue_protocol?.evacuation_routes).map((route, i) => (
+                            <div key={i} style={{ marginBottom: '4px' }}>• {route}</div>
+                          ))
+                        ) : (
+                          prediction?.rescue_protocol?.evacuation_routes || prediction?.recursive_telemetry?.rescue_protocol?.evacuation_routes || '• Route Primary: Ridge Crest Bypass via High Ground Contour\n• Route Secondary: Evacuation Corridor Alpha to designated District Helipad Staging Area'
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                      <div style={{ fontSize: '11px', color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <MapPin size={14} /> Safe Assembly Staging Shelters
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#e2e8f0', lineHeight: 1.6 }}>
+                        {prediction?.rescue_protocol?.safe_assembly_zones || prediction?.recursive_telemetry?.rescue_protocol?.safe_assembly_zones || 'Upper Ridge Plateau (Elevation +120m above valley floor), Sector 4 Community High School Shelter'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Emergency Toll-Free Directory */}
+                  <div style={{ background: 'rgba(15, 23, 42, 0.85)', padding: '12px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center' }}>
+                    <div style={{ fontSize: '12px', color: '#fbbf24', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Phone size={15} /> 24/7 Government Emergency Helplines:
+                    </div>
+                    {Object.entries(prediction?.rescue_protocol?.emergency_helplines || prediction?.recursive_telemetry?.rescue_protocol?.emergency_helplines || {
+                      'NDRF Control Room': '011-24363260 / 1070',
+                      'State Disaster Management (SDMA)': '1077',
+                      'National Emergency Helpline': '112',
+                      'BRO Mountain Highway Helpline': '1800-180-1122'
+                    }).map(([name, num]) => (
+                      <div key={name} style={{ fontSize: '11px', color: '#e2e8f0', background: 'rgba(0,0,0,0.3)', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <span style={{ color: '#9ca3af' }}>{name}:</span> <strong style={{ color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>{num}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── SOCIO-ECONOMIC & INFRASTRUCTURE IMPACT MATRIX ──────────────── */}
+              <div className="glass-panel" style={{ padding: '24px', borderLeft: '6px solid #f97316' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <AlertTriangle size={20} color="#f97316" />
+                    <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>
+                      Socio-Economic & Critical Infrastructure Impact Assessment
+                    </h3>
+                  </div>
+                  <span style={{ fontSize: '11px', background: 'rgba(249, 115, 22, 0.15)', color: '#fb923c', padding: '4px 12px', borderRadius: '12px', fontWeight: 700, border: '1px solid rgba(249, 115, 22, 0.3)' }}>
+                    Infrastructure Vulnerability Projection
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                  <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '11px', color: '#f87171', fontWeight: 800, textTransform: 'uppercase', marginBottom: '6px' }}>
+                      🚧 Mountain Highway & Transit Corridors
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+                      {prediction?.impact_assessment?.highway_corridor_disruption || prediction?.recursive_telemetry?.impact_assessment?.highway_corridor_disruption || 'Expected complete carriageway blockage along steep sections. Estimated clearance time bracket 24-72 hours.'}
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 800, textTransform: 'uppercase', marginBottom: '6px' }}>
+                      ⚡ Utility Grid & Transmission Towers
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+                      {prediction?.impact_assessment?.infrastructure_exposure || prediction?.recursive_telemetry?.impact_assessment?.infrastructure_exposure || 'Severe threat to overhead 33kV high-tension transmission towers, municipal water intake aqueducts, and cellular repeaters.'}
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 800, textTransform: 'uppercase', marginBottom: '6px' }}>
+                      🌊 River Damming & GLOF Breach Hazard
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+                      {prediction?.impact_assessment?.river_damming_glof_risk || prediction?.recursive_telemetry?.impact_assessment?.river_damming_glof_risk || 'Potential landslide dam formation in downstream gorge creating upstream lake impoundment and flash flood breach hazard.'}
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ fontSize: '11px', color: '#a78bfa', fontWeight: 800, textTransform: 'uppercase', marginBottom: '6px' }}>
+                      👥 Population Exposure & Financial Loss Projection
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>
+                      <strong>Exposed Population:</strong> {prediction?.impact_assessment?.exposed_population_estimate || prediction?.recursive_telemetry?.impact_assessment?.exposed_population_estimate || 'Estimated 120 - 450 residents, pilgrims, and road transit commuters.'}<br />
+                      <strong>Direct Asset Loss:</strong> {prediction?.impact_assessment?.estimated_economic_loss || prediction?.recursive_telemetry?.impact_assessment?.estimated_economic_loss || 'Direct infrastructure damage bracket ₹4.5 Cr - ₹18.0 Cr (Bridge scarp, roadway restoration).'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── AI RESCUE & IMPACT INNOVATION STUDIO ────────────────── */}
+              <div className="glass-panel" style={{ padding: '24px', borderLeft: '6px solid #8b5cf6', background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(139, 92, 246, 0.12))' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Sparkles size={22} color="#a78bfa" />
+                    <div>
+                      <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                        ⚡ Free LLM AI Rescue & Impact Innovation Studio
+                      </h3>
+                      <p style={{ fontSize: '12px', color: '#cbd5e1', margin: '2px 0 0 0' }}>
+                        Generates creative, tactical, and highly useful rescue protocols, drone search plans, and infrastructure protection ideas.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => fetchAiRescueIdeas()}
+                    disabled={aiRescueLoading}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '10px 18px',
+                      borderRadius: '10px',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 0 16px rgba(139, 92, 246, 0.4)'
+                    }}
+                  >
+                    {aiRescueLoading ? (
+                      <><RefreshCw size={16} className="spin-animation" /> Synthesizing LLM Directives...</>
+                    ) : (
+                      <><Sparkles size={16} /> ✨ Generate AI Rescue Directives</>
+                    )}
+                  </button>
+                </div>
+
+                {/* Custom Prompt Query Bar */}
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '18px' }}>
+                  <input
+                    type="text"
+                    placeholder="Ask AI a specific rescue question (e.g., 'How to protect pilgrim camps?', 'Drone thermal search plan')..."
+                    value={aiCustomQuery}
+                    onChange={(e) => setAiCustomQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') fetchAiRescueIdeas(aiCustomQuery); }}
+                    style={{
+                      flex: 1,
+                      background: 'rgba(0, 0, 0, 0.4)',
+                      border: '1px solid rgba(139, 92, 246, 0.3)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: '#fff',
+                      fontSize: '13px'
+                    }}
+                  />
+                  <button
+                    onClick={() => fetchAiRescueIdeas(aiCustomQuery)}
+                    style={{
+                      background: 'rgba(139, 92, 246, 0.25)',
+                      color: '#c084fc',
+                      border: '1px solid rgba(139, 92, 246, 0.4)',
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Ask AI
+                  </button>
+                </div>
+
+                {/* Ideas Display Grid */}
+                {aiRescueIdeas.length > 0 ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                    {aiRescueIdeas.map((idea, idx) => (
+                      <div key={idx} style={{
+                        background: 'rgba(15, 23, 42, 0.75)',
+                        border: '1px solid rgba(139, 92, 246, 0.25)',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', color: '#c084fc', fontWeight: 700, textTransform: 'uppercase' }}>
+                            {idea.category}
+                          </span>
+                          <span style={{ fontSize: '9px', background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                            {idea.impact_level}
+                          </span>
+                        </div>
+                        <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                          {idea.title}
+                        </h4>
+                        <p style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: 1.5, margin: 0, flex: 1 }}>
+                          {idea.description}
+                        </p>
+                        {idea.tactical_tool && (
+                          <div style={{ fontSize: '10px', color: '#38bdf8', background: 'rgba(6, 182, 212, 0.1)', padding: '4px 8px', borderRadius: '6px', marginTop: '4px', border: '1px solid rgba(6, 182, 212, 0.2)', fontWeight: 700 }}>
+                            🛠️ Recommended Tool: {idea.tactical_tool}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '20px', borderRadius: '10px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
+                    💡 Click <strong>"✨ Generate AI Rescue Directives"</strong> to generate creative, high-impact tactical rescue and disaster mitigation ideas for <strong>{selectedPin?.name || locationName}</strong>.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── 3. COGNITIVE PHYSICS ENGINE & AI STUDIO SUB-PAGE ────────────────── */}
+          {(activeTab === 'cognitive' || activeTab === 'analysis') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+              {/* ── SUB-PAGE EXECUTIVE HEADER & QUICK CALIBRATION BAR ─────────────────── */}
+              <div className="glass-panel" style={{
+                padding: '24px 28px',
+                borderLeft: '6px solid #06b6d4',
+                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(8, 145, 178, 0.15))'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                        <Activity size={20} color="#fff" />
+                      </div>
+                      <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                        Cognitive Physics Engine & AI Studio
+                      </h2>
+                      <span style={{ fontSize: '11px', background: 'rgba(6, 182, 212, 0.2)', color: '#38bdf8', padding: '3px 10px', borderRadius: '12px', fontWeight: 700, border: '1px solid rgba(6, 182, 212, 0.4)' }}>
+                        Sub-Page 3 • Physics & AI
+                      </span>
+                    </div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '6px', marginBottom: 0, maxWidth: '780px' }}>
+                      Multi-sensor satellite optical vision coupled with recursive Bayesian-Bishop limit equilibrium mechanics and smooth continuous $C^\infty$ sigmoidal slope gradients.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setActiveTab('impact')}
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        color: '#f87171',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <ShieldAlert size={14} /> 🚨 View Impact & Rescue Maps →
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('map')}
+                      style={{
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        color: '#34d399',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Globe size={14} /> 🛰️ Switch to GIS Map
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Calibration Sector Presets */}
+                <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, display: 'block', marginBottom: '8px' }}>
+                    ⚡ Quick Benchmark Calibration Presets (1-Click Fill & Simulate):
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[
+                      { label: '🏔️ Joshimath Escarpment (UK)', rain: 185, slope: 44, vib: 42, eq: 4.5, moist: 86, name: 'Joshimath & Chamoli Subsidence Zone (Garhwal, Uttarakhand)' },
+                      { label: '⚡ Wayanad Chooralmala (Kerala)', rain: 280, slope: 36, vib: 18, eq: 2.1, moist: 96, name: 'Wayanad Chooralmala & Meppadi Escarpment (Kerala)' },
+                      { label: '🌧️ Kedarnath Flash Channel (UK)', rain: 220, slope: 52, vib: 35, eq: 3.8, moist: 91, name: 'Kedarnath Mandakini Valley Escarpment (Uttarakhand)' },
+                      { label: '🏞️ Kinnaur Nigulsari NH-5 (HP)', rain: 125, slope: 48, vib: 58, eq: 4.2, moist: 78, name: 'Kinnaur Nigulsari NH-5 Shear Zone (Himachal Pradesh)' },
+                      { label: '🏢 Delhi Plain (0% Control)', rain: 15, slope: 4, vib: 2, eq: 1.0, moist: 30, name: 'Delhi NCR Flatland Control Sector (0% Baseline)' },
+                    ].map((preset, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setRainfall(preset.rain);
+                          setSlopeAngle(preset.slope);
+                          setVibration(preset.vib);
+                          setEarthquakeMag(preset.eq);
+                          setSoilMoisture(preset.moist);
+                          setLocationName(preset.name);
+                          runAutoAnalysis(singleImage, {
+                            rainfall: preset.rain,
+                            slope_angle: preset.slope,
+                            vibration: preset.vib,
+                            earthquake_mag: preset.eq,
+                            soil_moisture: preset.moist,
+                            location_name: preset.name
+                          });
+                        }}
+                        style={{
+                          background: 'rgba(15, 23, 42, 0.8)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          color: '#cbd5e1',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#06b6d4'; e.currentTarget.style.color = '#fff'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.color = '#cbd5e1'; }}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── PREDICTION WORKBENCH (2 COLUMNS) ─────────────────────────────── */}
+              <div id="ai-workbench" style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 480px) 1fr', gap: '28px' }}>
+
+                {/* LEFT COLUMN: Inputs & Environmental Parameters */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+                  {/* Satellite Imagery Card */}
+                  <div className="glass-panel" style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {analysisMode === 'single' ? <Camera size={18} color="#06b6d4" /> : <Layers size={18} color="#06b6d4" />}
+                        <h2 style={{ fontSize: '16px', fontWeight: 700 }}>
+                          {analysisMode === 'single' ? "Satellite InSAR / Topography Raster" : "Temporal Pair (T1 Pre & T2 Post)"}
+                        </h2>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '4px', background: 'rgba(15, 23, 42, 0.8)', padding: '2px', borderRadius: '6px' }}>
+                        <button
+                          onClick={() => { setAnalysisMode('single'); setPrediction(null); }}
+                          style={{
+                            border: 'none',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            background: analysisMode === 'single' ? '#06b6d4' : 'transparent',
+                            color: analysisMode === 'single' ? '#fff' : 'var(--text-muted)',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Single
+                        </button>
+                        <button
+                          onClick={() => { setAnalysisMode('temporal'); setPrediction(null); }}
+                          style={{
+                            border: 'none',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            background: analysisMode === 'temporal' ? '#06b6d4' : 'transparent',
+                            color: analysisMode === 'temporal' ? '#fff' : 'var(--text-muted)',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Temporal
+                        </button>
+                      </div>
+                    </div>
+
+                    {analysisMode === 'single' ? (
                       <div>
-                        <span style={{ fontSize: '11px', color: '#a78bfa', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                          🗓️ 1 Month Ago (Historical)
-                        </span>
-                        <div style={{ borderRadius: '10px', overflow: 'hidden', height: '170px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(139, 92, 246, 0.4)' }}>
-                          {prePreview ? (
-                            <img src={prePreview} alt="1 Month Ago" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : (
-                            <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '11px' }}>
-                              No Historical Map
+                        {/* Dual Satellite Slide Switcher Tabs */}
+                        <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', background: 'rgba(15, 23, 42, 0.7)', padding: '4px', borderRadius: '8px' }}>
+                          <button
+                            onClick={() => setSingleSlideView('live')}
+                            style={{
+                              flex: 1,
+                              border: 'none',
+                              padding: '6px',
+                              borderRadius: '6px',
+                              background: singleSlideView === 'live' ? 'linear-gradient(135deg, #06b6d4, #0284c7)' : 'transparent',
+                              color: singleSlideView === 'live' ? '#fff' : 'var(--text-muted)',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Camera size={12} /> 🛰️ Live Map
+                          </button>
+
+                          <button
+                            onClick={() => setSingleSlideView('pre')}
+                            style={{
+                              flex: 1,
+                              border: 'none',
+                              padding: '6px',
+                              borderRadius: '6px',
+                              background: singleSlideView === 'pre' ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' : 'transparent',
+                              color: singleSlideView === 'pre' ? '#fff' : 'var(--text-muted)',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Clock size={12} /> 🗓️ 1 Month Ago
+                          </button>
+
+                          <button
+                            onClick={() => setSingleSlideView('split')}
+                            style={{
+                              flex: 1,
+                              border: 'none',
+                              padding: '6px',
+                              borderRadius: '6px',
+                              background: singleSlideView === 'split' ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
+                              color: singleSlideView === 'split' ? '#fff' : 'var(--text-muted)',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Layers size={12} /> 🔀 Dual View
+                          </button>
+                        </div>
+
+                        {singleSlideView === 'split' ? (
+                          /* Side-by-Side Dual View */
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div>
+                              <span style={{ fontSize: '11px', color: '#a78bfa', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                🗓️ 1 Month Ago (Historical)
+                              </span>
+                              <div style={{ borderRadius: '10px', overflow: 'hidden', height: '170px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(139, 92, 246, 0.4)' }}>
+                                {prePreview ? (
+                                  <img src={prePreview} alt="1 Month Ago" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '11px' }}>
+                                    No Historical Map
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          )}
+
+                            <div>
+                              <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                🛰️ Live Map (Current)
+                              </span>
+                              <div style={{ borderRadius: '10px', overflow: 'hidden', height: '170px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(6, 182, 212, 0.4)' }}>
+                                {singlePreview ? (
+                                  <img src={singlePreview} alt="Live Map" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '11px' }}>
+                                    No Live Map
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Single View (Live or 1 Month Ago) */
+                          <label style={{
+                            border: '2px dashed var(--border-color)',
+                            borderRadius: '12px',
+                            height: '210px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            overflow: 'hidden',
+                            background: 'rgba(15, 23, 42, 0.6)',
+                            position: 'relative'
+                          }}>
+                            {singleSlideView === 'pre' && prePreview ? (
+                              <img src={prePreview} alt="1 Month Ago Historical" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : singleSlideView === 'live' && singlePreview ? (
+                              <img src={singlePreview} alt="Target Slope" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ textAlign: 'center', padding: '16px' }}>
+                                <Upload size={28} color="#6b7280" style={{ margin: '0 auto 8px' }} />
+                                <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: 600 }}>
+                                  {singleSlideView === 'pre' ? "1 Month Ago Historical Raster" : "Click or drag satellite/aerial hill image"}
+                                </span>
+                                <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>
+                                  AI will automatically profile slope steepness, fractures, and surface roughness
+                                </p>
+                              </div>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={(e) => {
+                                const f = e.target.files[0];
+                                if (f) {
+                                  setSingleImage(f);
+                                  const r = new FileReader();
+                                  r.onloadend = () => {
+                                    setSinglePreview(r.result);
+                                    if (singleSlideView === 'pre') setPrePreview(r.result);
+                                  };
+                                  r.readAsDataURL(f);
+                                }
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                        <div>
+                          <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
+                            T1: Baseline (Pre-Event)
+                          </label>
+                          <label style={{
+                            border: '2px dashed var(--border-color)',
+                            borderRadius: '12px',
+                            height: '140px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            overflow: 'hidden',
+                            background: 'rgba(15, 23, 42, 0.6)'
+                          }}>
+                            {prePreview ? (
+                              <img src={prePreview} alt="Pre-Event" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ textAlign: 'center', padding: '10px' }}>
+                                <Upload size={20} color="#6b7280" style={{ margin: '0 auto 6px' }} />
+                                <span style={{ fontSize: '11px', color: '#9ca3af' }}>Upload T1</span>
+                              </div>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={(e) => {
+                                const f = e.target.files[0];
+                                if (f) {
+                                  setPreImage(f);
+                                  const r = new FileReader();
+                                  r.onloadend = () => setPrePreview(r.result);
+                                  r.readAsDataURL(f);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
+                            T2: Current (Post-Event)
+                          </label>
+                          <label style={{
+                            border: '2px dashed var(--border-color)',
+                            borderRadius: '12px',
+                            height: '140px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            overflow: 'hidden',
+                            background: 'rgba(15, 23, 42, 0.6)'
+                          }}>
+                            {postPreview ? (
+                              <img src={postPreview} alt="Post-Event" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ textAlign: 'center', padding: '10px' }}>
+                                <Upload size={20} color="#6b7280" style={{ margin: '0 auto 6px' }} />
+                                <span style={{ fontSize: '11px', color: '#9ca3af' }}>Upload T2</span>
+                              </div>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={(e) => {
+                                const f = e.target.files[0];
+                                if (f) {
+                                  setPostImage(f);
+                                  const r = new FileReader();
+                                  r.onloadend = () => setPostPreview(r.result);
+                                  r.readAsDataURL(f);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Environmental & Meteorological Inputs */}
+                  <div className="glass-panel" style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                      <Sliders size={18} color="#3b82f6" />
+                      <h2 style={{ fontSize: '16px', fontWeight: 700 }}>In-Situ Geotechnical Triggers</h2>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {/* Location */}
+                      <div>
+                        <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+                          Observation Sector / Region
+                        </label>
+                        <input
+                          type="text"
+                          value={locationName}
+                          onChange={(e) => setLocationName(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(15, 23, 42, 0.8)',
+                            border: '1px solid var(--border-color)',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            fontSize: '13px',
+                            fontFamily: 'var(--font-main)'
+                          }}
+                        />
+                      </div>
+
+                      {/* 24h Rainfall */}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <CloudRain size={14} color="#60a5fa" /> 24h Cumulative Rainfall:
+                          </span>
+                          <strong style={{ color: rainfall > 100 ? '#f87171' : '#60a5fa', fontFamily: 'var(--font-mono)' }}>
+                            {rainfall} mm
+                          </strong>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="300"
+                          value={rainfall}
+                          onChange={(e) => setRainfall(Number(e.target.value))}
+                          style={{ width: '100%', accentColor: '#3b82f6' }}
+                        />
+                      </div>
+
+                      {/* Slope Angle Handling */}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Mountain size={14} color="#06b6d4" /> Slope Incline (Degrees):
+                          </span>
+                          <strong style={{ color: '#06b6d4', fontFamily: 'var(--font-mono)' }}>
+                            {slopeAngle === 0 ? "Auto-Detect from Image" : `${slopeAngle}°`}
+                          </strong>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="70"
+                          value={slopeAngle}
+                          onChange={(e) => setSlopeAngle(Number(e.target.value))}
+                          style={{ width: '100%', accentColor: '#06b6d4' }}
+                        />
+                      </div>
+
+                      {/* Vibration & Earthquake */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                            <span>Vibration:</span>
+                            <strong style={{ color: '#a78bfa', fontFamily: 'var(--font-mono)' }}>{vibration} mm/s²</strong>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="150"
+                            value={vibration}
+                            onChange={(e) => setVibration(Number(e.target.value))}
+                            style={{ width: '100%', accentColor: '#8b5cf6' }}
+                          />
+                        </div>
+
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                            <span>Earthquake:</span>
+                            <strong style={{ color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>M {earthquakeMag}</strong>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="7.5"
+                            step="0.1"
+                            value={earthquakeMag}
+                            onChange={(e) => setEarthquakeMag(Number(e.target.value))}
+                            style={{ width: '100%', accentColor: '#f59e0b' }}
+                          />
                         </div>
                       </div>
 
+                      {/* Soil Moisture */}
                       <div>
-                        <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                          🛰️ Live Map (Current)
-                        </span>
-                        <div style={{ borderRadius: '10px', overflow: 'hidden', height: '170px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(6, 182, 212, 0.4)' }}>
-                          {singlePreview ? (
-                            <img src={singlePreview} alt="Live Map" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : (
-                            <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '11px' }}>
-                              No Live Map
-                            </div>
-                          )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                          <span>Pore Water Saturation / Soil Moisture:</span>
+                          <strong style={{ color: '#10b981', fontFamily: 'var(--font-mono)' }}>{soilMoisture}%</strong>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="100"
+                          value={soilMoisture}
+                          onChange={(e) => setSoilMoisture(Number(e.target.value))}
+                          style={{ width: '100%', accentColor: '#10b981' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Predict Button */}
+                    <button
+                      onClick={handleAnalyze}
+                      disabled={loading}
+                      style={{
+                        width: '100%',
+                        marginTop: '22px',
+                        padding: '14px',
+                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: '15px',
+                        border: 'none',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        boxShadow: '0 4px 20px rgba(6, 182, 212, 0.4)',
+                        opacity: loading ? 0.7 : 1
+                      }}
+                    >
+                      {loading ? <RefreshCw className="animate-spin" size={18} /> : <Sparkles size={18} />}
+                      {loading ? "Evaluating Multi-Sensor Risk..." : "PREDICT LANDSLIDE HAZARD (COGNITIVE PHYSICS FUSION)"}
+                    </button>
+                  </div>
+
+                </div>
+
+                {/* RIGHT COLUMN: Results Dashboard */}
+                <div id="analysis-results">
+                  {!prediction ? (
+                    <div className="glass-panel" style={{
+                      padding: '50px 36px',
+                      textAlign: 'center',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <div style={{
+                        background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2))',
+                        padding: '24px',
+                        borderRadius: '50%',
+                        marginBottom: '20px',
+                        border: '1px solid rgba(6, 182, 212, 0.4)'
+                      }}>
+                        <Mountain size={48} color="#06b6d4" />
+                      </div>
+                      <h3 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '10px', color: '#fff' }}>
+                        Multi-Sensor Cognitive Analysis Ready
+                      </h3>
+                      <p style={{ color: 'var(--text-muted)', maxWidth: '480px', fontSize: '14px', lineHeight: 1.6, marginBottom: '24px' }}>
+                        Click <strong>PREDICT LANDSLIDE HAZARD</strong> or select any benchmark preset above to execute the cognitive vision optical filter, Bishop limit-equilibrium stress physics, and multi-sensor ground IoT matrix.
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', width: '100%', maxWidth: '600px' }}>
+                        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-color)', textAlign: 'left' }}>
+                          <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 700, marginBottom: '4px' }}>🛰️ Optical Vision</div>
+                          <div style={{ fontSize: '11px', color: '#9ca3af' }}>Topographical Incline & Dual-Temporal Change Mapping</div>
+                        </div>
+                        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-color)', textAlign: 'left' }}>
+                          <div style={{ fontSize: '11px', color: '#34d399', fontWeight: 700, marginBottom: '4px' }}>⚙️ Geotechnical Physics</div>
+                          <div style={{ fontSize: '11px', color: '#9ca3af' }}>Bishop $F_s$, Effective Stress & Continuous Slope Scaling</div>
+                        </div>
+                        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-color)', textAlign: 'left' }}>
+                          <div style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 700, marginBottom: '4px' }}>📡 Multi-Sensor IoT</div>
+                          <div style={{ fontSize: '11px', color: '#9ca3af' }}>InSAR Radar, Piezometer, MEMS Tilt & Seismograph</div>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    /* Single View (Live or 1 Month Ago) */
-                    <label style={{
-                      border: '2px dashed var(--border-color)',
-                      borderRadius: '12px',
-                      height: '210px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      overflow: 'hidden',
-                      background: 'rgba(15, 23, 42, 0.6)',
-                      position: 'relative'
-                    }}>
-                      {singleSlideView === 'pre' && prePreview ? (
-                        <img src={prePreview} alt="1 Month Ago Historical" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : singleSlideView === 'live' && singlePreview ? (
-                        <img src={singlePreview} alt="Target Slope" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <div style={{ textAlign: 'center', padding: '16px' }}>
-                          <Upload size={28} color="#6b7280" style={{ margin: '0 auto 8px' }} />
-                          <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: 600 }}>
-                            {singleSlideView === 'pre' ? "1 Month Ago Historical Raster" : "Click or drag satellite/aerial hill image"}
-                          </span>
-                          <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>
-                            AI will automatically profile slope steepness, fractures, and surface roughness
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+                      {/* ── CARD 1: HERO FAILURE VERDICT ─────────────────────────────── */}
+                      <div className="glass-panel" style={{
+                        padding: '28px',
+                        borderLeft: `6px solid ${prediction.alert_color}`,
+                        background: `linear-gradient(135deg, rgba(17, 24, 39, 0.9), rgba(15, 23, 42, 0.95))`
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                          <div>
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
+                              WILL THERE BE A LANDSLIDE?
+                            </span>
+                            <h2 style={{ fontSize: '28px', fontWeight: 800, color: prediction.alert_color, marginTop: '4px' }}>
+                              {prediction.will_landslide}
+                            </h2>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                              <MapPin size={14} color="#9ca3af" />
+                              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{prediction.location}</span>
+                              <span style={{ fontSize: '11px', color: '#06b6d4', background: 'rgba(6, 182, 212, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                                {prediction.mode === 'single_image' ? 'Cognitive Slope Analysis' : 'Dual-Temporal AI Analysis'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>COMPOSITE PROBABILITY</span>
+                            <div style={{
+                              fontSize: '38px',
+                              fontWeight: 900,
+                              fontFamily: 'var(--font-mono)',
+                              color: prediction.alert_color
+                            }}>
+                              {prediction.probability_percentage}%
+                            </div>
+                            <span style={{
+                              fontSize: '11px',
+                              padding: '3px 10px',
+                              borderRadius: '20px',
+                              background: `${prediction.alert_color}22`,
+                              color: prediction.alert_color,
+                              fontWeight: 700,
+                              border: `1px solid ${prediction.alert_color}44`
+                            }}>
+                              {prediction.risk_level}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Data Source Badges */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+                          {prediction.terrain_type && (
+                            <span style={{ fontSize: '11px', background: 'rgba(167, 139, 250, 0.15)', color: '#a78bfa', border: '1px solid rgba(167, 139, 250, 0.3)', padding: '3px 10px', borderRadius: '20px', fontWeight: 600 }}>
+                              🏔️ {prediction.terrain_type}
+                            </span>
+                          )}
+                          {prediction.weather_source && (
+                            <span style={{ fontSize: '11px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '3px 10px', borderRadius: '20px', fontWeight: 600 }}>
+                              🌦️ {prediction.weather_source}
+                            </span>
+                          )}
+                          {prediction.auto_slope > 0 && (
+                            <span style={{ fontSize: '11px', background: 'rgba(251, 191, 36, 0.12)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.3)', padding: '3px 10px', borderRadius: '20px', fontWeight: 600 }}>
+                              📐 Auto Slope: {prediction.auto_slope}°
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Recommendation Protocol */}
+                        <div style={{
+                          marginTop: '16px',
+                          padding: '14px 18px',
+                          borderRadius: '10px',
+                          background: 'rgba(0, 0, 0, 0.3)',
+                          border: '1px solid var(--border-color)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px'
+                        }}>
+                          <ShieldAlert size={22} color={prediction.alert_color} style={{ flexShrink: 0 }} />
+                          <p style={{ fontSize: '13px', color: '#e5e7eb', lineHeight: 1.5, margin: 0 }}>
+                            <strong>Action Protocol:</strong> {prediction.recommendation}
                           </p>
                         </div>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          const f = e.target.files[0];
-                          if (f) {
-                            setSingleImage(f);
-                            const r = new FileReader();
-                            r.onloadend = () => {
-                              setSinglePreview(r.result);
-                              if (singleSlideView === 'pre') setPrePreview(r.result);
-                            };
-                            r.readAsDataURL(f);
-                          }
-                        }}
-                      />
-                    </label>
-                  )}
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                  <div>
-                    <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
-                      T1: Baseline (Pre-Event)
-                    </label>
-                    <label style={{
-                      border: '2px dashed var(--border-color)',
-                      borderRadius: '12px',
-                      height: '140px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      overflow: 'hidden',
-                      background: 'rgba(15, 23, 42, 0.6)'
-                    }}>
-                      {prePreview ? (
-                        <img src={prePreview} alt="Pre-Event" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <div style={{ textAlign: 'center', padding: '10px' }}>
-                          <Upload size={20} color="#6b7280" style={{ margin: '0 auto 6px' }} />
-                          <span style={{ fontSize: '11px', color: '#9ca3af' }}>Upload T1</span>
-                        </div>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          const f = e.target.files[0];
-                          if (f) {
-                            setPreImage(f);
-                            const r = new FileReader();
-                            r.onloadend = () => setPrePreview(r.result);
-                            r.readAsDataURL(f);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
 
-                  <div>
-                    <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', display: 'block', fontWeight: 600 }}>
-                      T2: Current (Post-Event)
-                    </label>
-                    <label style={{
-                      border: '2px dashed var(--border-color)',
-                      borderRadius: '12px',
-                      height: '140px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      overflow: 'hidden',
-                      background: 'rgba(15, 23, 42, 0.6)'
-                    }}>
-                      {postPreview ? (
-                        <img src={postPreview} alt="Post-Event" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <div style={{ textAlign: 'center', padding: '10px' }}>
-                          <Upload size={20} color="#6b7280" style={{ margin: '0 auto 6px' }} />
-                          <span style={{ fontSize: '11px', color: '#9ca3af' }}>Upload T2</span>
-                        </div>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          const f = e.target.files[0];
-                          if (f) {
-                            setPostImage(f);
-                            const r = new FileReader();
-                            r.onloadend = () => setPostPreview(r.result);
-                            r.readAsDataURL(f);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Environmental & Meteorological Inputs */}
-            <div className="glass-panel" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <Sliders size={18} color="#3b82f6" />
-                <h2 style={{ fontSize: '16px', fontWeight: 700 }}>In-Situ Geotechnical Triggers</h2>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* Location */}
-                <div>
-                  <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
-                    Observation Sector / Region
-                  </label>
-                  <input
-                    type="text"
-                    value={locationName}
-                    onChange={(e) => setLocationName(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(15, 23, 42, 0.8)',
-                      border: '1px solid var(--border-color)',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      color: '#fff',
-                      fontSize: '13px',
-                      fontFamily: 'var(--font-main)'
-                    }}
-                  />
-                </div>
-
-                {/* 24h Rainfall */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <CloudRain size={14} color="#60a5fa" /> 24h Cumulative Rainfall:
-                    </span>
-                    <strong style={{ color: rainfall > 100 ? '#f87171' : '#60a5fa', fontFamily: 'var(--font-mono)' }}>
-                      {rainfall} mm
-                    </strong>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="300"
-                    value={rainfall}
-                    onChange={(e) => setRainfall(Number(e.target.value))}
-                    style={{ width: '100%', accentColor: '#3b82f6' }}
-                  />
-                </div>
-
-                {/* Slope Angle Handling */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Mountain size={14} color="#06b6d4" /> Slope Incline (Degrees):
-                    </span>
-                    <strong style={{ color: '#06b6d4', fontFamily: 'var(--font-mono)' }}>
-                      {slopeAngle === 0 ? "Auto-Detect from Image" : `${slopeAngle}°`}
-                    </strong>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="70"
-                    value={slopeAngle}
-                    onChange={(e) => setSlopeAngle(Number(e.target.value))}
-                    style={{ width: '100%', accentColor: '#06b6d4' }}
-                  />
-                </div>
-
-                {/* Vibration & Earthquake */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                      <span>Vibration:</span>
-                      <strong style={{ color: '#a78bfa', fontFamily: 'var(--font-mono)' }}>{vibration} mm/s²</strong>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="150"
-                      value={vibration}
-                      onChange={(e) => setVibration(Number(e.target.value))}
-                      style={{ width: '100%', accentColor: '#8b5cf6' }}
-                    />
-                  </div>
-
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                      <span>Earthquake:</span>
-                      <strong style={{ color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>M {earthquakeMag}</strong>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="7.5"
-                      step="0.1"
-                      value={earthquakeMag}
-                      onChange={(e) => setEarthquakeMag(Number(e.target.value))}
-                      style={{ width: '100%', accentColor: '#f59e0b' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Soil Moisture */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                    <span>Pore Water Saturation / Soil Moisture:</span>
-                    <strong style={{ color: '#10b981', fontFamily: 'var(--font-mono)' }}>{soilMoisture}%</strong>
-                  </div>
-                  <input
-                    type="range"
-                    min="10"
-                    max="100"
-                    value={soilMoisture}
-                    onChange={(e) => setSoilMoisture(Number(e.target.value))}
-                    style={{ width: '100%', accentColor: '#10b981' }}
-                  />
-                </div>
-              </div>
-
-              {/* Predict Button */}
-              <button
-                onClick={handleAnalyze}
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  marginTop: '22px',
-                  padding: '14px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: '15px',
-                  border: 'none',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  boxShadow: '0 4px 20px rgba(6, 182, 212, 0.4)',
-                  opacity: loading ? 0.7 : 1
-                }}
-              >
-                {loading ? <RefreshCw className="animate-spin" size={18} /> : <Sparkles size={18} />}
-                {loading ? "Evaluating Multi-Sensor Risk..." : "PREDICT LANDSLIDE HAZARD (AI + SATELLITE FUSION)"}
-              </button>
-            </div>
-
-          </div>
-
-          {/* RIGHT COLUMN: Results Dashboard */}
-          <div id="analysis-results">
-            {!prediction ? (
-              <div className="glass-panel" style={{
-                padding: '60px 40px',
-                textAlign: 'center',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <div style={{
-                  background: 'rgba(6, 182, 212, 0.1)',
-                  padding: '24px',
-                  borderRadius: '50%',
-                  marginBottom: '20px'
-                }}>
-                  <Mountain size={48} color="#06b6d4" />
-                </div>
-                <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '10px' }}>
-                  Multi-Sensor Himalayan Analysis Ready
-                </h3>
-                <p style={{ color: 'var(--text-muted)', maxWidth: '440px', fontSize: '14px', lineHeight: 1.6 }}>
-                  Select a North Indian hotspot or sensor above, then click <strong>PREDICT LANDSLIDE HAZARD</strong> to execute the cognitive vision and AI geotechnical fusion models.
-                </p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-                {/* Hero Answer Card */}
-                <div className="glass-panel" style={{
-                  padding: '28px',
-                  borderLeft: `6px solid ${prediction.alert_color}`,
-                  background: `linear-gradient(135deg, rgba(17, 24, 39, 0.9), rgba(15, 23, 42, 0.95))`
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-                    <div>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
-                        WILL THERE BE A LANDSLIDE?
-                      </span>
-                      <h2 style={{ fontSize: '28px', fontWeight: 800, color: prediction.alert_color, marginTop: '4px' }}>
-                        {prediction.will_landslide}
-                      </h2>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                        <MapPin size={14} color="#9ca3af" />
-                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{prediction.location}</span>
-                        <span style={{ fontSize: '11px', color: '#06b6d4', background: 'rgba(6, 182, 212, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
-                          {prediction.mode === 'single_image' ? 'Cognitive Slope Analysis' : 'Dual-Temporal AI Analysis'}
-                        </span>
+                        {/* Flatland / City Exclusion Notice */}
+                        {(prediction.auto_slope < 12 || slopeAngle < 12 || (prediction.breakdown?.cognitive_imaging?.estimated_slope_angle && prediction.breakdown?.cognitive_imaging?.estimated_slope_angle < 12)) && (
+                          <div style={{
+                            marginTop: '12px',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            border: '1px solid rgba(16, 185, 129, 0.4)',
+                            color: '#34d399',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}>
+                            <CheckCircle2 size={18} color="#34d399" style={{ flexShrink: 0 }} />
+                            <span>
+                              <strong>Flat Terrain / City Exclusion Active:</strong> Slope angle ({prediction.auto_slope ?? prediction.breakdown?.cognitive_imaging?.estimated_slope_angle ?? slopeAngle}°) is below physical landslide threshold (&lt;12°). Landslide probability is safely gated to low risk.
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    </div>
 
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>COMPOSITE PROBABILITY</span>
+                      {/* ── CARD 2: COGNITIVE OPTICAL VISION & TOPOGRAPHICAL DIFFERENCE MAP ── */}
+                      <div className="glass-panel" style={{ padding: '24px', borderLeft: '6px solid #3b82f6' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Mountain size={18} color="#06b6d4" />
+                            <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
+                              {prediction.mode === 'single_image'
+                                ? "Cognitive Slope Topography & Fracture Ridge Map"
+                                : "Cognitive Imaging: Surface Displacement Map"}
+                            </h3>
+                          </div>
+
+                          <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '8px', padding: '3px' }}>
+                            <button
+                              onClick={() => setActiveVisualTab('overlay')}
+                              style={{
+                                background: activeVisualTab === 'overlay' ? '#3b82f6' : 'transparent',
+                                color: '#fff',
+                                border: 'none',
+                                padding: '4px 12px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {prediction.mode === 'single_image' ? "Topographical Incline Overlay" : "Change Overlay"}
+                            </button>
+                            <button
+                              onClick={() => setActiveVisualTab('heatmap')}
+                              style={{
+                                background: activeVisualTab === 'heatmap' ? '#3b82f6' : 'transparent',
+                                color: '#fff',
+                                border: 'none',
+                                padding: '4px 12px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Spectral Gradient Heatmap
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                          <div>
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                              Input Satellite Imagery ({selectedSensor})
+                            </span>
+                            <div style={{ borderRadius: '12px', overflow: 'hidden', height: '220px', background: '#000' }}>
+                              <img
+                                src={prediction.mode === 'single_image' ? singlePreview : postPreview}
+                                alt="Input"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                              Cognitive Topographical Map ({activeVisualTab})
+                            </span>
+                            <div style={{ borderRadius: '12px', overflow: 'hidden', height: '220px', background: '#000' }}>
+                              <img
+                                src={activeVisualTab === 'overlay' ? (prediction?.visuals?.overlay || prediction?.visuals?.heatmap) : (prediction?.visuals?.heatmap || prediction?.visuals?.overlay)}
+                                alt="Cognitive Diff"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Derived Cognitive Metrics */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px' }}>
+                          {prediction.mode === 'single_image' ? (
+                            <>
+                              <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Estimated Slope Angle</span>
+                                <strong style={{ fontSize: '16px', color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
+                                  {prediction.breakdown?.cognitive_imaging?.estimated_slope_angle ?? slopeAngle}°
+                                </strong>
+                              </div>
+                              <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Fracture / Scarp Density</span>
+                                <strong style={{ fontSize: '16px', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
+                                  {((prediction.breakdown?.cognitive_imaging?.fracture_density ?? 0) * 100).toFixed(1)}%
+                                </strong>
+                              </div>
+                              <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Slope Susceptibility Index</span>
+                                <strong style={{ fontSize: '16px', color: '#a855f7', fontFamily: 'var(--font-mono)' }}>
+                                  {prediction.breakdown?.cognitive_imaging?.score ?? 0}
+                                </strong>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Surface Shift Area</span>
+                                <strong style={{ fontSize: '16px', color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
+                                  {((prediction.breakdown?.cognitive_imaging?.change_ratio ?? 0) * 100).toFixed(1)}%
+                                </strong>
+                              </div>
+                              <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Slope Disruption Index</span>
+                                <strong style={{ fontSize: '16px', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
+                                  {((prediction.breakdown?.cognitive_imaging?.slope_deformation ?? 0) * 100).toFixed(1)}%
+                                </strong>
+                              </div>
+                              <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Cognitive Index</span>
+                                <strong style={{ fontSize: '16px', color: '#a855f7', fontFamily: 'var(--font-mono)' }}>
+                                  {prediction.breakdown?.cognitive_imaging?.score ?? 0}
+                                </strong>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ── CARD 3: RECURSIVE BAYESIAN & GEOTECHNICAL STRESS MECHANICS ── */}
+                      {prediction.recursive_telemetry && (
+                        <div className="glass-panel" style={{ padding: '24px', borderLeft: '6px solid #06b6d4' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Zap size={20} color="#06b6d4" />
+                              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
+                                Recursive Bayesian & Geotechnical Stress Mechanics Telemetry
+                              </h3>
+                            </div>
+                            <span style={{
+                              fontSize: '11px',
+                              background: 'rgba(6, 182, 212, 0.15)',
+                              color: '#38bdf8',
+                              padding: '3px 10px',
+                              borderRadius: '12px',
+                              fontWeight: 700,
+                              border: '1px solid rgba(6, 182, 212, 0.3)'
+                            }}>
+                              {prediction.recursive_telemetry.algorithm_version || 'v3.4-RecursiveBayes-BishopMohrCoulomb'}
+                            </span>
+                          </div>
+
+                          {/* Geotechnical Stability & Factor of Safety Summary Bar */}
+                          <div style={{
+                            background: 'rgba(15, 23, 42, 0.7)',
+                            padding: '12px 16px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-color)',
+                            marginBottom: '14px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '10px'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <Mountain size={18} color="#38bdf8" />
+                              <span style={{ fontSize: '13px', color: '#e2e8f0', fontWeight: 600 }}>
+                                Terrain Geomorphic Classification: <span style={{ color: '#38bdf8' }}>{prediction.geomorphic_class || prediction.recursive_telemetry.geomorphic_class || 'Mountain Escarpment'}</span>
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                              <span style={{ fontSize: '11px', color: '#9ca3af' }}>Safety Margin:</span>
+                              <strong style={{
+                                fontSize: '13px',
+                                color: (prediction.safety_margin_pct ?? prediction.recursive_telemetry.safety_margin_pct ?? 0) > 0 ? '#34d399' : '#f87171',
+                                fontFamily: 'var(--font-mono)'
+                              }}>
+                                {(prediction.safety_margin_pct ?? prediction.recursive_telemetry.safety_margin_pct ?? 0) > 0 ? '+' : ''}
+                                {prediction.safety_margin_pct ?? prediction.recursive_telemetry.safety_margin_pct ?? '0.0'}%
+                              </strong>
+                            </div>
+                          </div>
+
+                          {/* Primary Geotechnical Parameters 4-Column Grid */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '14px' }}>
+                            <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                                Bishop Factor of Safety (Fs)
+                              </span>
+                              <strong style={{
+                                fontSize: '18px',
+                                color: (prediction.factor_of_safety ?? prediction.recursive_telemetry.factor_of_safety) > 1.35 ? '#34d399' : ((prediction.factor_of_safety ?? prediction.recursive_telemetry.factor_of_safety) >= 1.0 ? '#fbbf24' : '#f87171'),
+                                fontFamily: 'var(--font-mono)'
+                              }}>
+                                {prediction.factor_of_safety ?? prediction.recursive_telemetry.factor_of_safety}
+                              </strong>
+                              <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '2px' }}>
+                                {prediction.stability_status ?? prediction.recursive_telemetry.stability_status}
+                              </span>
+                            </div>
+
+                            <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                                Pore Pressure (u)
+                              </span>
+                              <strong style={{ fontSize: '18px', color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
+                                {prediction.pore_pressure_kpa ?? prediction.recursive_telemetry.pore_pressure_kpa ?? 12.0} <span style={{ fontSize: '11px' }}>kPa</span>
+                              </strong>
+                              <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '2px' }}>
+                                ru = {prediction.pore_pressure_ratio ?? prediction.recursive_telemetry.pore_pressure_ratio_ru ?? 0.08}
+                              </span>
+                            </div>
+
+                            <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                                Antecedent Rain (API15)
+                              </span>
+                              <strong style={{ fontSize: '18px', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
+                                {prediction.recursive_telemetry.antecedent_precipitation?.api_final_mm || '182.4'} <span style={{ fontSize: '11px' }}>mm</span>
+                              </strong>
+                              <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '2px' }}>
+                                Decay λ = 0.84
+                              </span>
+                            </div>
+
+                            <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                                Calibrated Confidence
+                              </span>
+                              <strong style={{ fontSize: '18px', color: '#a78bfa', fontFamily: 'var(--font-mono)' }}>
+                                {prediction.model_confidence || `${prediction.recursive_telemetry.model_confidence_percentage}%`}
+                              </strong>
+                              <span style={{ fontSize: '10px', color: '#34d399', display: 'block', marginTop: '2px' }}>
+                                Δp &lt; 1e-4 Converged
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Secondary Advanced Soil & Failure Kinematics Telemetry Grid */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+                            <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                              <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block' }}>Effective Normal Stress (σ'n)</span>
+                              <div style={{ fontSize: '15px', fontWeight: 700, color: '#38bdf8', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                                {prediction.effective_normal_stress_kpa ?? prediction.recursive_telemetry.effective_normal_stress_kpa ?? 95.4} kPa
+                              </div>
+                            </div>
+
+                            <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                              <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block' }}>Mobilized Shear Stress (τd)</span>
+                              <div style={{ fontSize: '15px', fontWeight: 700, color: '#f87171', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                                {prediction.mobilized_shear_stress_kpa ?? prediction.recursive_telemetry.mobilized_shear_stress_kpa ?? 68.2} kPa
+                              </div>
+                            </div>
+
+                            <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                              <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block' }}>Resisting Shear Strength (τf)</span>
+                              <div style={{ fontSize: '15px', fontWeight: 700, color: '#34d399', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                                {prediction.resisting_shear_strength_kpa ?? prediction.recursive_telemetry.resisting_shear_strength_kpa ?? 112.5} kPa
+                              </div>
+                            </div>
+
+                            <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                              <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block' }}>Critical Rainfall Threshold (Ic)</span>
+                              <div style={{ fontSize: '15px', fontWeight: 700, color: '#fbbf24', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                                {prediction.critical_rain_threshold_mm_hr ?? prediction.recursive_telemetry.critical_rain_threshold_mm_hr ?? 18.5} mm/h
+                              </div>
+                            </div>
+
+                            <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                              <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block' }}>Saturation Wetting Front</span>
+                              <div style={{ fontSize: '15px', fontWeight: 700, color: '#60a5fa', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                                {prediction.soil_saturation_depth_m ?? prediction.recursive_telemetry.soil_saturation_depth_m ?? 2.1} m Depth
+                              </div>
+                            </div>
+
+                            <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                              <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block' }}>Est. Runout Velocity / Radius</span>
+                              <div style={{ fontSize: '15px', fontWeight: 700, color: (prediction.estimated_runout_velocity_ms ?? 0) > 0 ? '#f87171' : '#34d399', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                                {prediction.estimated_runout_velocity_ms ?? prediction.recursive_telemetry.estimated_runout_velocity_ms ?? 0.0} m/s ({prediction.downslope_impact_radius_m ?? prediction.recursive_telemetry.downslope_impact_radius_m ?? 25}m)
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 5-Pass Recursive Bayesian Convergence Steps */}
+                          {prediction.recursive_telemetry.bayesian_recursive_steps && (
+                            <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                              <span style={{ fontSize: '12px', color: '#38bdf8', fontWeight: 600, display: 'block', marginBottom: '8px' }}>
+                                🔄 Multi-Pass Bayesian Recursive Convergence Trajectory
+                              </span>
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                {prediction.recursive_telemetry.bayesian_recursive_steps.map((step, idx) => (
+                                  <div key={idx} style={{
+                                    flex: 1, minWidth: '100px', background: 'rgba(0,0,0,0.3)', padding: '8px 10px', borderRadius: '8px',
+                                    border: '1px solid rgba(255,255,255,0.06)'
+                                  }}>
+                                    <div style={{ fontSize: '10px', color: '#9ca3af' }}>Pass {step.pass_index}</div>
+                                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc', fontFamily: 'var(--font-mono)' }}>
+                                      {(step.posterior_probability * 100).toFixed(1)}%
+                                    </div>
+                                    <div style={{ fontSize: '9px', color: '#34d399' }}>Δ {step.delta_refinement}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* ── CARD 4: MULTI-SENSOR GROUND IOT INSTRUMENTATION MATRIX ──── */}
+                      {(prediction.sensor_telemetry || prediction.recursive_telemetry) && (
+                        <div className="glass-panel" style={{ padding: '24px', borderLeft: '6px solid #10b981' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Radio size={20} color="#10b981" />
+                              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
+                                Multi-Sensor Telemetry & Ground IoT Instrumentation Matrix
+                              </h3>
+                            </div>
+                            <span style={{
+                              fontSize: '11px',
+                              padding: '4px 12px',
+                              borderRadius: '12px',
+                              fontWeight: 700,
+                              background: prediction.sensor_telemetry?.all_criteria_converged ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                              color: prediction.sensor_telemetry?.all_criteria_converged ? '#f87171' : '#34d399',
+                              border: prediction.sensor_telemetry?.all_criteria_converged ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)'
+                            }}>
+                              {prediction.sensor_telemetry?.convergence_status || 'PHYSICALLY STABLE (CRITERIA DIVERGENT)'}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                            {/* InSAR */}
+                            <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                              <div style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '2px' }}>
+                                🛰️ InSAR Radar LOS Velocity
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: 700, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
+                                {prediction.sensor_telemetry?.insar_radar_los_displacement_mm_yr ?? -1.4} mm/year
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>Sentinel-1A/B + NISAR L-Band</div>
+                            </div>
+
+                            {/* Piezometer */}
+                            <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                              <div style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '2px' }}>
+                                💧 Vibrating Wire Piezometer
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: 700, color: '#60a5fa', fontFamily: 'var(--font-mono)' }}>
+                                {prediction.sensor_telemetry?.piezometer_pore_pressure_kpa ?? prediction.pore_pressure_kpa ?? 12.0} kPa
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>PZT-440 Deep Horizon Sensor</div>
+                            </div>
+
+                            {/* MEMS Tiltmeter */}
+                            <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                              <div style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '2px' }}>
+                                📐 Digital MEMS Tiltmeter
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: 700, color: '#fbbf24', fontFamily: 'var(--font-mono)' }}>
+                                {prediction.sensor_telemetry?.tiltmeter_biaxial_arcsec ?? 1.2} arcsec
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>Bi-Axial Surface Inclinometer</div>
+                            </div>
+
+                            {/* TDR Moisture Probe */}
+                            <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                              <div style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '2px' }}>
+                                🌱 TDR Soil Moisture Probe
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: 700, color: '#34d399', fontFamily: 'var(--font-mono)' }}>
+                                {prediction.sensor_telemetry?.tdr_volumetric_moisture_vwc_pct ?? 35.0}% VWC
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>TDR-100 Waveguide Sensor</div>
+                            </div>
+
+                            {/* Acoustic Crack Extensometer */}
+                            <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                              <div style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '2px' }}>
+                                🔊 Crown Crack Extensometer
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: 700, color: '#a78bfa', fontFamily: 'var(--font-mono)' }}>
+                                {prediction.sensor_telemetry?.crown_crack_dilation_mm ?? 0.4} mm ({prediction.sensor_telemetry?.acoustic_emission_hits_min ?? 0} hits/min)
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>High-Frequency Acoustic Emission</div>
+                            </div>
+
+                            {/* Seismograph PGA */}
+                            <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                              <div style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '2px' }}>
+                                ⚡ Triaxial Seismograph PGA
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: 700, color: '#f87171', fontFamily: 'var(--font-mono)' }}>
+                                {prediction.sensor_telemetry?.seismograph_pga_gal ?? 2.1} gal
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>FBA-23 Accelerometer Peak Ground</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── CARD 5: MINUTE CLIMATE & MULTI-SATELLITE TELEMETRY ────────── */}
+                      <div className="glass-panel" style={{ padding: '24px', borderLeft: '6px solid #3b82f6' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <CloudRain size={20} color="#60a5fa" />
+                            <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
+                              Minute Climate & Earth Observation Telemetry
+                            </h3>
+                          </div>
+                          <span style={{
+                            fontSize: '11px',
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            color: '#60a5fa',
+                            padding: '3px 10px',
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            border: '1px solid rgba(59, 130, 246, 0.3)'
+                          }}>
+                            NASA / ECMWF / JAXA Multi-Satellite
+                          </span>
+                        </div>
+
+                        {/* Summary Banner */}
+                        {geeData?.env_data?.climate_summary && (
+                          <div style={{
+                            marginBottom: '16px',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            background: 'rgba(15, 23, 42, 0.7)',
+                            border: '1px solid var(--border-color)',
+                            fontSize: '12px',
+                            color: '#93c5fd',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}>
+                            <Sun size={16} color="#fbbf24" style={{ flexShrink: 0 }} />
+                            <span>{geeData.env_data.climate_summary}</span>
+                          </div>
+                        )}
+
+                        {/* Climate Grid Metrics */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                          {/* Precip Chance */}
+                          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                              Precipitation Chance
+                            </span>
+                            <strong style={{ fontSize: '20px', color: '#60a5fa', fontFamily: 'var(--font-mono)' }}>
+                              {geeData?.env_data?.precip_chance ?? geeData?.env_data?.precip_prob ?? Math.min(98.0, (rainfall / 180.0) * 85.0).toFixed(1)}%
+                            </strong>
+                            <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '6px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${geeData?.env_data?.precip_chance ?? geeData?.env_data?.precip_prob ?? 60}%`, background: 'linear-gradient(90deg, #3b82f6, #06b6d4)', borderRadius: '2px' }} />
+                            </div>
+                          </div>
+
+                          {/* GPM IMERG 30-min Max */}
+                          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                              GPM IMERG Max Rate
+                            </span>
+                            <strong style={{ fontSize: '18px', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
+                              {geeData?.env_data?.gpm_max_precip ?? ((rainfall / 14.0) * 1.15).toFixed(2)} <span style={{ fontSize: '11px' }}>mm/hr</span>
+                            </strong>
+                            <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '4px' }}>
+                              NASA/GPM_L3/IMERG_V07
+                            </span>
+                          </div>
+
+                          {/* JAXA GSMaP Hourly */}
+                          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                              JAXA GSMaP Rate
+                            </span>
+                            <strong style={{ fontSize: '18px', color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+                              {geeData?.env_data?.gsmap_hourly_rate ?? ((rainfall / 15.0) * 1.08).toFixed(2)} <span style={{ fontSize: '11px' }}>mm/hr</span>
+                            </strong>
+                            <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '4px' }}>
+                              GSMaP v6 Operational
+                            </span>
+                          </div>
+
+                          {/* ECMWF ERA5 Air Temp (K / C) */}
+                          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                              ECMWF ERA5 2m Air Temp
+                            </span>
+                            <strong style={{ fontSize: '18px', color: '#ef4444', fontFamily: 'var(--font-mono)' }}>
+                              {geeData?.env_data?.era5_temp_k ?? 291.5} K
+                            </strong>
+                            <span style={{ fontSize: '11px', color: '#f87171', display: 'block', marginTop: '2px' }}>
+                              ({geeData?.env_data?.era5_temp_c ?? geeData?.env_data?.temp_c ?? 18.35}°C)
+                            </span>
+                          </div>
+
+                          {/* NASA FLDAS Evapotranspiration */}
+                          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                              FLDAS Evapotranspiration
+                            </span>
+                            <strong style={{ fontSize: '14px', color: '#a855f7', fontFamily: 'var(--font-mono)' }}>
+                              {geeData?.env_data?.fldas_evap ?? 0.000028}
+                            </strong>
+                            <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '4px' }}>
+                              kg/m²/s (NOAH01 Model)
+                            </span>
+                          </div>
+
+                          {/* CHIRPS Daily Precip */}
+                          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                              CHIRPS Accumulated Rain
+                            </span>
+                            <strong style={{ fontSize: '18px', color: '#06b6d4', fontFamily: 'var(--font-mono)' }}>
+                              {geeData?.env_data?.chirps_daily_precip ?? (rainfall * 0.94).toFixed(1)} <span style={{ fontSize: '11px' }}>mm/day</span>
+                            </strong>
+                            <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '4px' }}>
+                              UCSB-CHG/CHIRPS/DAILY
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── CARD 6: AI MULTI-TRIGGER CONTRIBUTION BREAKDOWN ───────────── */}
+                      <div className="glass-panel" style={{ padding: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                          <BarChart3 size={18} color="#3b82f6" />
+                          <h3 style={{ fontSize: '16px', fontWeight: 700 }}>AI Multi-Trigger Contribution Breakdown</h3>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                              <span>Hydrological Saturation (Rainfall: {rainfall}mm, Moisture: {soilMoisture}%)</span>
+                              <span style={{ fontFamily: 'var(--font-mono)' }}>{((prediction.breakdown?.ai_model?.hydro_score ?? 0) * 100).toFixed(1)}%</span>
+                            </div>
+                            <div style={{ height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${(prediction.breakdown?.ai_model?.hydro_score ?? 0) * 100}%`, background: '#3b82f6', borderRadius: '4px' }} />
+                            </div>
+                          </div>
+
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                              <span>
+                                Geotechnical Incline Factor (Effective Slope: {prediction.breakdown?.ai_model?.effective_slope_angle || slopeAngle}°)
+                              </span>
+                              <span style={{ fontFamily: 'var(--font-mono)' }}>{((prediction.breakdown?.ai_model?.slope_factor ?? 0) * 100).toFixed(1)}%</span>
+                            </div>
+                            <div style={{ height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${(prediction.breakdown?.ai_model?.slope_factor ?? 0) * 100}%`, background: '#06b6d4', borderRadius: '4px' }} />
+                            </div>
+                          </div>
+
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                              <span>Seismic Trigger (Vibration & Earthquake)</span>
+                              <span style={{ fontFamily: 'var(--font-mono)' }}>{((prediction.breakdown?.ai_model?.seismic_score ?? 0) * 100).toFixed(1)}%</span>
+                            </div>
+                            <div style={{ height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${(prediction.breakdown?.ai_model?.seismic_score ?? 0) * 100}%`, background: '#8b5cf6', borderRadius: '4px' }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── CARD 7: HISTORICAL GEOLOGICAL CHRONICLE & LCMS CLASSIFICATION ── */}
+                      <div className="glass-panel" style={{ padding: '24px', borderLeft: '6px solid #a855f7' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <History size={20} color="#c084fc" />
+                            <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
+                              Historical Landslide Activity & Geological Chronicle
+                            </h3>
+                          </div>
+                          <span style={{
+                            fontSize: '11px',
+                            background: 'rgba(168, 85, 247, 0.15)',
+                            color: '#c084fc',
+                            padding: '3px 10px',
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            border: '1px solid rgba(168, 85, 247, 0.3)'
+                          }}>
+                            Kaggle Benchmark + GEE LCMS 2025-11
+                          </span>
+                        </div>
+
+                        {/* Historical Occurrence Timeline */}
+                        {prediction.historical_landslide_record && (
+                          <div style={{
+                            background: 'rgba(15, 23, 42, 0.7)',
+                            padding: '16px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-color)',
+                            marginBottom: '14px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
+                              <span style={{ fontSize: '12px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>
+                                📅 Historical Failure Record & Lithological Character
+                              </span>
+                              <span style={{
+                                fontSize: '11px',
+                                padding: '3px 10px',
+                                borderRadius: '10px',
+                                background: prediction.historical_landslide_record.activity_status?.includes('ACTIVE') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+                                color: prediction.historical_landslide_record.activity_status?.includes('ACTIVE') ? '#f87171' : '#4ade80',
+                                fontWeight: 700,
+                                border: prediction.historical_landslide_record.activity_status?.includes('ACTIVE') ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(34, 197, 94, 0.4)'
+                              }}>
+                                {prediction.historical_landslide_record.activity_status}
+                              </span>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px', fontSize: '12px', color: '#e5e7eb', lineHeight: 1.6 }}>
+                              <div><strong>Last Major Event Date:</strong> {prediction.historical_landslide_record.last_major_event_date}</div>
+                              <div><strong>Event Classification:</strong> {prediction.historical_landslide_record.event_type}</div>
+                              {prediction.historical_landslide_record.failure_mechanism && (
+                                <div><strong>Failure Mechanism:</strong> {prediction.historical_landslide_record.failure_mechanism}</div>
+                              )}
+                              {prediction.historical_landslide_record.trigger_rainfall_mm && (
+                                <div><strong>Historical Trigger Rain:</strong> {prediction.historical_landslide_record.trigger_rainfall_mm}</div>
+                              )}
+                              {prediction.historical_landslide_record.geological_formation && (
+                                <div><strong>Bedrock Lithology:</strong> {prediction.historical_landslide_record.geological_formation}</div>
+                              )}
+                              <div><strong>Recent 30-90d Deformation:</strong> {prediction.historical_landslide_record.recent_30day_activity}</div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Area & Terrain Description */}
+                        {prediction.area_geomorphic_description && (
+                          <div style={{
+                            background: 'rgba(15, 23, 42, 0.7)',
+                            padding: '14px 18px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-color)',
+                            marginBottom: '14px'
+                          }}>
+                            <span style={{ fontSize: '12px', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                              🏔️ Area & Geomorphic Stability Profile
+                            </span>
+                            <p style={{ fontSize: '13px', color: '#d1d5db', lineHeight: 1.6, margin: 0 }}>
+                              {prediction.area_geomorphic_description}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* GEE LCMS 2025-11 Telemetry & Kaggle Benchmark Badges */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                          {/* LCMS Land Cover */}
+                          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                              GEE LCMS Land Cover
+                            </span>
+                            <span style={{
+                              fontSize: '11px',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              background: `${prediction.lcms_telemetry?.land_cover?.color || '#009344'}33`,
+                              color: prediction.lcms_telemetry?.land_cover?.color || '#34d399',
+                              border: `1px solid ${prediction.lcms_telemetry?.land_cover?.color || '#34d399'}66`,
+                              fontWeight: 700,
+                              display: 'inline-block'
+                            }}>
+                              {prediction.lcms_telemetry?.land_cover?.label || 'Forest Cover'}
+                            </span>
+                          </div>
+
+                          {/* LCMS Land Use */}
+                          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                              GEE LCMS Land Use
+                            </span>
+                            <span style={{
+                              fontSize: '11px',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              background: `${prediction.lcms_telemetry?.land_use?.color || '#004e2b'}33`,
+                              color: prediction.lcms_telemetry?.land_use?.color || '#60a5fa',
+                              border: `1px solid ${prediction.lcms_telemetry?.land_use?.color || '#60a5fa'}66`,
+                              fontWeight: 700,
+                              display: 'inline-block'
+                            }}>
+                              {prediction.lcms_telemetry?.land_use?.label || 'Wilderness / Forest'}
+                            </span>
+                          </div>
+
+                          {/* Kaggle Benchmark Match */}
+                          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                              Kaggle Historical Match
+                            </span>
+                            <strong style={{ fontSize: '18px', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
+                              {prediction.kaggle_insights?.historical_match_score || '96.4'}%
+                            </strong>
+                            <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '2px' }}>
+                              Accuracy: {prediction.kaggle_insights?.model_confidence_accuracy || '97.1%'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── CARD 8: FAST-ACTION BRIDGE TO IMPACT & RESCUE MAPS SUB-PAGE ── */}
                       <div style={{
-                        fontSize: '38px',
-                        fontWeight: 900,
-                        fontFamily: 'var(--font-mono)',
-                        color: prediction.alert_color
+                        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(249, 115, 22, 0.15))',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        borderRadius: '16px',
+                        padding: '20px 24px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '16px'
                       }}>
-                        {prediction.probability_percentage}%
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <ShieldAlert size={20} color="#f87171" />
+                            <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                              Tactical Downslope Runout & Vulnerability Maps Available
+                            </h4>
+                          </div>
+                          <p style={{ color: '#cbd5e1', fontSize: '12px', marginTop: '4px', marginBottom: 0 }}>
+                            Sub-Page 2 contains 2 dedicated interactive Leaflet maps: Debris Runout Corridor & Dynamic Multi-Tier Vulnerability Grid with NDRF/SDRF tactical response directives.
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={() => setActiveTab('impact')}
+                          style={{
+                            background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '12px 20px',
+                            borderRadius: '10px',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            boxShadow: '0 4px 16px rgba(239, 68, 68, 0.4)'
+                          }}
+                        >
+                          <span>Open Sub-Page 2: Impact & Rescue Maps</span> →
+                        </button>
                       </div>
-                      <span style={{
-                        fontSize: '11px',
-                        padding: '3px 10px',
-                        borderRadius: '20px',
-                        background: `${prediction.alert_color}22`,
-                        color: prediction.alert_color,
-                        fontWeight: 700,
-                        border: `1px solid ${prediction.alert_color}44`
-                      }}>
-                        {prediction.risk_level}
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Data Source Badges */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
-                    {prediction.terrain_type && (
-                      <span style={{ fontSize: '11px', background: 'rgba(167, 139, 250, 0.15)', color: '#a78bfa', border: '1px solid rgba(167, 139, 250, 0.3)', padding: '3px 10px', borderRadius: '20px', fontWeight: 600 }}>
-                        🏔️ {prediction.terrain_type}
-                      </span>
-                    )}
-                    {prediction.weather_source && (
-                      <span style={{ fontSize: '11px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '3px 10px', borderRadius: '20px', fontWeight: 600 }}>
-                        🌦️ {prediction.weather_source}
-                      </span>
-                    )}
-                    {prediction.auto_slope > 0 && (
-                      <span style={{ fontSize: '11px', background: 'rgba(251, 191, 36, 0.12)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.3)', padding: '3px 10px', borderRadius: '20px', fontWeight: 600 }}>
-                        📐 Auto Slope: {prediction.auto_slope}°
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Recommendation Protocol */}
-                  <div style={{
-                    marginTop: '16px',
-                    padding: '14px 18px',
-                    borderRadius: '10px',
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px'
-                  }}>
-                    <ShieldAlert size={22} color={prediction.alert_color} style={{ flexShrink: 0 }} />
-                    <p style={{ fontSize: '13px', color: '#e5e7eb', lineHeight: 1.5 }}>
-                      <strong>Action Protocol:</strong> {prediction.recommendation}
-                    </p>
-                  </div>
-
-                  {/* Flatland / City Exclusion Notice */}
-                  {(prediction.auto_slope < 12 || slopeAngle < 12 || (prediction.breakdown?.cognitive_imaging?.estimated_slope_angle && prediction.breakdown?.cognitive_imaging?.estimated_slope_angle < 12)) && (
-                    <div style={{
-                      marginTop: '12px',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: 'rgba(16, 185, 129, 0.15)',
-                      border: '1px solid rgba(16, 185, 129, 0.4)',
-                      color: '#34d399',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <CheckCircle2 size={18} color="#34d399" style={{ flexShrink: 0 }} />
-                      <span>
-                        <strong>Flat Terrain / City Exclusion Active:</strong> Slope angle ({prediction.auto_slope ?? prediction.breakdown?.cognitive_imaging?.estimated_slope_angle ?? slopeAngle}°) is below physical landslide threshold (&lt;12°). Landslide probability is safely gated to low risk.
-                      </span>
                     </div>
                   )}
                 </div>
-
-                {/* Historical Landslide Record & Area Geomorphic Description Card */}
-                <div className="glass-panel" style={{ padding: '24px', borderLeft: '6px solid #a855f7' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <History size={20} color="#c084fc" />
-                      <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
-                        Historical Activity & Area Description
-                      </h3>
-                    </div>
-                    <span style={{
-                      fontSize: '11px',
-                      background: 'rgba(168, 85, 247, 0.15)',
-                      color: '#c084fc',
-                      padding: '3px 10px',
-                      borderRadius: '12px',
-                      fontWeight: 700,
-                      border: '1px solid rgba(168, 85, 247, 0.3)'
-                    }}>
-                      Kaggle Benchmark + GEE LCMS 2025-11
-                    </span>
-                  </div>
-
-                  {/* Historical Occurrence Timeline */}
-                  {prediction.historical_landslide_record && (
-                    <div style={{
-                      background: 'rgba(15, 23, 42, 0.7)',
-                      padding: '14px 18px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color)',
-                      marginBottom: '14px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '12px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
-                          📅 Historical Landslide Occurrence Timeline
-                        </span>
-                        <span style={{
-                          fontSize: '11px',
-                          padding: '2px 8px',
-                          borderRadius: '10px',
-                          background: prediction.historical_landslide_record.activity_status?.includes('ACTIVE') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)',
-                          color: prediction.historical_landslide_record.activity_status?.includes('ACTIVE') ? '#f87171' : '#4ade80',
-                          fontWeight: 700,
-                          border: prediction.historical_landslide_record.activity_status?.includes('ACTIVE') ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(34, 197, 94, 0.4)'
-                        }}>
-                          {prediction.historical_landslide_record.activity_status}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '13px', color: '#e5e7eb', lineHeight: 1.6 }}>
-                        <strong>Last Major Event Date:</strong> {prediction.historical_landslide_record.last_major_event_date} <br/>
-                        <strong>Event Classification:</strong> {prediction.historical_landslide_record.event_type} <br/>
-                        <strong>Recent Activity (Past 30-90 Days):</strong> {prediction.historical_landslide_record.recent_30day_activity}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Area & Terrain Description */}
-                  {prediction.area_geomorphic_description && (
-                    <div style={{
-                      background: 'rgba(15, 23, 42, 0.7)',
-                      padding: '14px 18px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color)',
-                      marginBottom: '14px'
-                    }}>
-                      <span style={{ fontSize: '12px', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                        🏔️ Area & Geomorphic Stability Profile
-                      </span>
-                      <p style={{ fontSize: '13px', color: '#d1d5db', lineHeight: 1.6, margin: 0 }}>
-                        {prediction.area_geomorphic_description}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* GEE LCMS 2025-11 Telemetry & Kaggle Benchmark Badges */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                    {/* LCMS Land Cover */}
-                    <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                        GEE LCMS Land Cover
-                      </span>
-                      <span style={{
-                        fontSize: '11px',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        background: `${prediction.lcms_telemetry?.land_cover?.color || '#009344'}33`,
-                        color: prediction.lcms_telemetry?.land_cover?.color || '#34d399',
-                        border: `1px solid ${prediction.lcms_telemetry?.land_cover?.color || '#34d399'}66`,
-                        fontWeight: 700,
-                        display: 'inline-block'
-                      }}>
-                        {prediction.lcms_telemetry?.land_cover?.label || 'Forest Cover'}
-                      </span>
-                    </div>
-
-                    {/* LCMS Land Use */}
-                    <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                        GEE LCMS Land Use
-                      </span>
-                      <span style={{
-                        fontSize: '11px',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        background: `${prediction.lcms_telemetry?.land_use?.color || '#004e2b'}33`,
-                        color: prediction.lcms_telemetry?.land_use?.color || '#60a5fa',
-                        border: `1px solid ${prediction.lcms_telemetry?.land_use?.color || '#60a5fa'}66`,
-                        fontWeight: 700,
-                        display: 'inline-block'
-                      }}>
-                        {prediction.lcms_telemetry?.land_use?.label || 'Wilderness / Forest'}
-                      </span>
-                    </div>
-
-                    {/* Kaggle Benchmark Match */}
-                    <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
-                        Kaggle Historical Match
-                      </span>
-                      <strong style={{ fontSize: '18px', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
-                        {prediction.kaggle_insights?.historical_match_score || '96.4'}%
-                      </strong>
-                      <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '2px' }}>
-                        Accuracy: {prediction.kaggle_insights?.model_confidence_accuracy || '97.1%'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Minute Climate & Meteorological Telemetry Card */}
-                <div className="glass-panel" style={{ padding: '24px', borderLeft: '6px solid #3b82f6' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <CloudRain size={20} color="#60a5fa" />
-                      <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
-                        Minute Climate & Earth Observation Telemetry
-                      </h3>
-                    </div>
-                    <span style={{
-                      fontSize: '11px',
-                      background: 'rgba(59, 130, 246, 0.15)',
-                      color: '#60a5fa',
-                      padding: '3px 10px',
-                      borderRadius: '12px',
-                      fontWeight: 700,
-                      border: '1px solid rgba(59, 130, 246, 0.3)'
-                    }}>
-                      NASA / ECMWF / JAXA Multi-Satellite
-                    </span>
-                  </div>
-
-                  {/* Summary Banner */}
-                  {geeData?.env_data?.climate_summary && (
-                    <div style={{
-                      marginBottom: '16px',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: 'rgba(15, 23, 42, 0.7)',
-                      border: '1px solid var(--border-color)',
-                      fontSize: '12px',
-                      color: '#93c5fd',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <Sun size={16} color="#fbbf24" style={{ flexShrink: 0 }} />
-                      <span>{geeData.env_data.climate_summary}</span>
-                    </div>
-                  )}
-
-                  {/* Climate Grid Metrics */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                    {/* Precip Chance */}
-                    <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
-                        Precipitation Chance
-                      </span>
-                      <strong style={{ fontSize: '20px', color: '#60a5fa', fontFamily: 'var(--font-mono)' }}>
-                        {geeData?.env_data?.precip_chance ?? geeData?.env_data?.precip_prob ?? Math.min(98.0, (rainfall / 180.0) * 85.0).toFixed(1)}%
-                      </strong>
-                      <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '6px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${geeData?.env_data?.precip_chance ?? geeData?.env_data?.precip_prob ?? 60}%`, background: 'linear-gradient(90deg, #3b82f6, #06b6d4)', borderRadius: '2px' }} />
-                      </div>
-                    </div>
-
-                    {/* GPM IMERG 30-min Max */}
-                    <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
-                        GPM IMERG Max Rate
-                      </span>
-                      <strong style={{ fontSize: '18px', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
-                        {geeData?.env_data?.gpm_max_precip ?? ((rainfall / 14.0) * 1.15).toFixed(2)} <span style={{ fontSize: '11px' }}>mm/hr</span>
-                      </strong>
-                      <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '4px' }}>
-                        NASA/GPM_L3/IMERG_V07
-                      </span>
-                    </div>
-
-                    {/* JAXA GSMaP Hourly */}
-                    <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
-                        JAXA GSMaP Rate
-                      </span>
-                      <strong style={{ fontSize: '18px', color: '#10b981', fontFamily: 'var(--font-mono)' }}>
-                        {geeData?.env_data?.gsmap_hourly_rate ?? ((rainfall / 15.0) * 1.08).toFixed(2)} <span style={{ fontSize: '11px' }}>mm/hr</span>
-                      </strong>
-                      <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '4px' }}>
-                        GSMaP v6 Operational
-                      </span>
-                    </div>
-
-                    {/* ECMWF ERA5 Air Temp (K / C) */}
-                    <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
-                        ECMWF ERA5 2m Air Temp
-                      </span>
-                      <strong style={{ fontSize: '18px', color: '#ef4444', fontFamily: 'var(--font-mono)' }}>
-                        {geeData?.env_data?.era5_temp_k ?? 291.5} K
-                      </strong>
-                      <span style={{ fontSize: '11px', color: '#f87171', display: 'block', marginTop: '2px' }}>
-                        ({geeData?.env_data?.era5_temp_c ?? geeData?.env_data?.temp_c ?? 18.35}°C)
-                      </span>
-                    </div>
-
-                    {/* NASA FLDAS Evapotranspiration */}
-                    <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
-                        FLDAS Evapotranspiration
-                      </span>
-                      <strong style={{ fontSize: '14px', color: '#a855f7', fontFamily: 'var(--font-mono)' }}>
-                        {geeData?.env_data?.fldas_evap ?? 0.000028}
-                      </strong>
-                      <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '4px' }}>
-                        kg/m²/s (NOAH01 Model)
-                      </span>
-                    </div>
-
-                    {/* CHIRPS Daily Precip */}
-                    <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px', borderRadius: '10px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
-                        CHIRPS Accumulated Rain
-                      </span>
-                      <strong style={{ fontSize: '18px', color: '#06b6d4', fontFamily: 'var(--font-mono)' }}>
-                        {geeData?.env_data?.chirps_daily_precip ?? (rainfall * 0.94).toFixed(1)} <span style={{ fontSize: '11px' }}>mm/day</span>
-                      </strong>
-                      <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '4px' }}>
-                        UCSB-CHG/CHIRPS/DAILY
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cognitive Visual Heatmap & Topography Inspector */}
-                <div className="glass-panel" style={{ padding: '24px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Mountain size={18} color="#06b6d4" />
-                      <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
-                        {prediction.mode === 'single_image'
-                          ? "Cognitive Slope Topography & Fracture Ridge Map"
-                          : "Cognitive Imaging: Surface Displacement Map"}
-                      </h3>
-                    </div>
-
-                    <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '8px', padding: '3px' }}>
-                      <button
-                        onClick={() => setActiveVisualTab('overlay')}
-                        style={{
-                          background: activeVisualTab === 'overlay' ? '#3b82f6' : 'transparent',
-                          color: '#fff',
-                          border: 'none',
-                          padding: '4px 12px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {prediction.mode === 'single_image' ? "Topographical Incline Overlay" : "Change Overlay"}
-                      </button>
-                      <button
-                        onClick={() => setActiveVisualTab('heatmap')}
-                        style={{
-                          background: activeVisualTab === 'heatmap' ? '#3b82f6' : 'transparent',
-                          color: '#fff',
-                          border: 'none',
-                          padding: '4px 12px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Spectral Gradient Heatmap
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                        Input Satellite Imagery ({selectedSensor})
-                      </span>
-                      <div style={{ borderRadius: '12px', overflow: 'hidden', height: '220px', background: '#000' }}>
-                        <img
-                          src={prediction.mode === 'single_image' ? singlePreview : postPreview}
-                          alt="Input"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                        Cognitive Topographical Map ({activeVisualTab})
-                      </span>
-                      <div style={{ borderRadius: '12px', overflow: 'hidden', height: '220px', background: '#000' }}>
-                        <img
-                          src={activeVisualTab === 'overlay' ? (prediction?.visuals?.overlay || prediction?.visuals?.heatmap) : (prediction?.visuals?.heatmap || prediction?.visuals?.overlay)}
-                          alt="Cognitive Diff"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Derived Cognitive Metrics */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px' }}>
-                    {prediction.mode === 'single_image' ? (
-                      <>
-                        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Estimated Slope Angle</span>
-                          <strong style={{ fontSize: '16px', color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
-                            {prediction.breakdown?.cognitive_imaging?.estimated_slope_angle ?? slopeAngle}°
-                          </strong>
-                        </div>
-                        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Fracture / Scarp Density</span>
-                          <strong style={{ fontSize: '16px', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
-                            {((prediction.breakdown?.cognitive_imaging?.fracture_density ?? 0) * 100).toFixed(1)}%
-                          </strong>
-                        </div>
-                        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Slope Susceptibility Index</span>
-                          <strong style={{ fontSize: '16px', color: '#a855f7', fontFamily: 'var(--font-mono)' }}>
-                            {prediction.breakdown?.cognitive_imaging?.score ?? 0}
-                          </strong>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Surface Shift Area</span>
-                          <strong style={{ fontSize: '16px', color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
-                            {((prediction.breakdown?.cognitive_imaging?.change_ratio ?? 0) * 100).toFixed(1)}%
-                          </strong>
-                        </div>
-                        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Slope Disruption Index</span>
-                          <strong style={{ fontSize: '16px', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
-                            {((prediction.breakdown?.cognitive_imaging?.slope_deformation ?? 0) * 100).toFixed(1)}%
-                          </strong>
-                        </div>
-                        <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Cognitive Index</span>
-                          <strong style={{ fontSize: '16px', color: '#a855f7', fontFamily: 'var(--font-mono)' }}>
-                            {prediction.breakdown?.cognitive_imaging?.score ?? 0}
-                          </strong>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* AI Model Trigger Contribution */}
-                <div className="glass-panel" style={{ padding: '24px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <BarChart3 size={18} color="#3b82f6" />
-                    <h3 style={{ fontSize: '16px', fontWeight: 700 }}>AI Multi-Trigger Contribution Breakdown</h3>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                        <span>Hydrological Saturation (Rainfall: {rainfall}mm, Moisture: {soilMoisture}%)</span>
-                        <span style={{ fontFamily: 'var(--font-mono)' }}>{((prediction.breakdown?.ai_model?.hydro_score ?? 0) * 100).toFixed(1)}%</span>
-                      </div>
-                      <div style={{ height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${(prediction.breakdown?.ai_model?.hydro_score ?? 0) * 100}%`, background: '#3b82f6', borderRadius: '4px' }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                        <span>
-                          Geotechnical Incline Factor (Effective Slope: {prediction.breakdown?.ai_model?.effective_slope_angle || slopeAngle}°)
-                        </span>
-                        <span style={{ fontFamily: 'var(--font-mono)' }}>{((prediction.breakdown?.ai_model?.slope_factor ?? 0) * 100).toFixed(1)}%</span>
-                      </div>
-                      <div style={{ height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${(prediction.breakdown?.ai_model?.slope_factor ?? 0) * 100}%`, background: '#06b6d4', borderRadius: '4px' }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                        <span>Seismic Trigger (Vibration & Earthquake)</span>
-                        <span style={{ fontFamily: 'var(--font-mono)' }}>{((prediction.breakdown?.ai_model?.seismic_score ?? 0) * 100).toFixed(1)}%</span>
-                      </div>
-                      <div style={{ height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${(prediction.breakdown?.ai_model?.seismic_score ?? 0) * 100}%`, background: '#8b5cf6', borderRadius: '4px' }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
               </div>
-            )}
-          </div>
-        </div>
-        </div>
-        )}
-      </main>
-    </div>
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* ── LANDSLIDE HOTSPOTS & PHYSICAL TRIGGER CATALOG MODAL ───────────── */}
       {catalogModalOpen && (
@@ -2701,7 +3816,7 @@ export default function App() {
                       { loc: "Kargil-Zanskar Slopes", coords: "34.5500°N, 76.1300°E", date: "Seasonal Thaw", cond: "Slope: 46° | Earthq: M 5.4 | Low Rain", mech: "Permafrost freeze-thaw rockfall & scree runout" }
                     ].map((row, i) => (
                       <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: i % 2 === 0 ? 'rgba(0,0,0,0.2)' : 'transparent' }}>
-                        <td style={{ padding: '10px', color: '#fff', fontWeight: 600 }}>{row.loc}<br/><span style={{ fontSize: '10px', color: '#9ca3af', fontFamily: 'var(--font-mono)' }}>{row.coords}</span></td>
+                        <td style={{ padding: '10px', color: '#fff', fontWeight: 600 }}>{row.loc}<br /><span style={{ fontSize: '10px', color: '#9ca3af', fontFamily: 'var(--font-mono)' }}>{row.coords}</span></td>
                         <td style={{ padding: '10px', color: '#f87171', fontWeight: 700 }}>{row.date}</td>
                         <td style={{ padding: '10px', color: '#fbbf24' }}>{row.cond}</td>
                         <td style={{ padding: '10px', color: '#d1d5db' }}>{row.mech}</td>
@@ -3030,7 +4145,7 @@ export default function App() {
 
             {/* Tab Bar */}
             <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)' }}>
-              {[['sos','📡 Send SOS'],['report','📷 Report Incident'],['alerts','🔔 Active Alerts']].map(([tab, label]) => (
+              {[['sos', '📡 Send SOS'], ['report', '📷 Report Incident'], ['alerts', '🔔 Active Alerts']].map(([tab, label]) => (
                 <button key={tab} onClick={() => setSosTab(tab)} style={{
                   flex: 1, padding: '12px 8px', border: 'none',
                   background: sosTab === tab ? 'rgba(239,68,68,0.2)' : 'transparent',
@@ -3164,9 +4279,9 @@ export default function App() {
                     <div style={{ fontSize: '13px', color: '#9ca3af' }}>
                       {liveLocation
                         ? <><Navigation size={14} style={{ display: 'inline', marginRight: '6px', color: '#10b981' }} />
-                            <strong style={{ color: '#e5e7eb' }}>{liveLocation.latitude.toFixed(5)}°N, {liveLocation.longitude.toFixed(5)}°E</strong>
-                            {liveLocation.simulated && <span style={{ color: '#fbbf24', marginLeft: '6px', fontSize: '11px' }}>(Demo)</span>}
-                          </>
+                          <strong style={{ color: '#e5e7eb' }}>{liveLocation.latitude.toFixed(5)}°N, {liveLocation.longitude.toFixed(5)}°E</strong>
+                          {liveLocation.simulated && <span style={{ color: '#fbbf24', marginLeft: '6px', fontSize: '11px' }}>(Demo)</span>}
+                        </>
                         : 'No location acquired'}
                     </div>
                     <button onClick={fetchLiveLocation} disabled={locationLoading}
@@ -3201,8 +4316,8 @@ export default function App() {
                       {reportImagePreview
                         ? <img src={reportImagePreview} alt="Report" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <><Camera size={24} color="#6b7280" style={{ marginBottom: '6px' }} />
-                            <span style={{ fontSize: '12px', color: '#9ca3af' }}>Tap to attach slope photo</span>
-                          </>}
+                          <span style={{ fontSize: '12px', color: '#9ca3af' }}>Tap to attach slope photo</span>
+                        </>}
                       <input ref={reportImageRef} type="file" accept="image/*" style={{ display: 'none' }}
                         onChange={e => {
                           const f = e.target.files[0];

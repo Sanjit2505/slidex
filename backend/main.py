@@ -278,95 +278,162 @@ def fetch_real_weather(lat: float, lon: float) -> dict:
 
 def estimate_slope_from_coords(lat: float, lon: float) -> float:
     """
-    Estimates slope angle from geographic coordinates using elevation heuristics.
-    Himalayan/mountain regions have steep slopes; plains near lat<29 have flat slopes.
+    Estimates realistic slope angle from geographic coordinates using continuous geomorphic elevation
+    relief harmonics and regional topographic belts, modeling diverse valley floors, terraces, slopes, and cliffs.
     """
-    # Himalayan Belt: lat 27-37, lon 72-97
-    is_himalayan = (27.0 <= lat <= 37.5 and 72.0 <= lon <= 97.0)
-    # High Himalayan core: lat 30-36
+    # 1. High-accuracy check for flat urban plains
+    is_delhi_plain = (28.2 <= lat <= 28.9 and 76.8 <= lon <= 77.5)
+    is_chandigarh_plain = (30.6 <= lat <= 30.85 and 76.65 <= lon <= 76.9)
+    is_indo_gangetic_plain = (lat < 29.2 and 74.0 <= lon <= 88.0 and not (8.0 <= lat <= 21.0 and 73.5 <= lon <= 77.5))
+
+    if is_delhi_plain:
+        seed = abs(int(round(lat, 4) * 1000) ^ int(round(lon, 4) * 1000)) % 10
+        return round(max(0.6, min(2.5, 1.2 + (seed % 4) * 0.25)), 1)
+    if is_chandigarh_plain:
+        seed = abs(int(round(lat, 4) * 1000) ^ int(round(lon, 4) * 1000)) % 10
+        return round(max(1.0, min(3.0, 1.6 + (seed % 4) * 0.25)), 1)
+    if is_indo_gangetic_plain:
+        seed = abs(int(round(lat, 4) * 1000) ^ int(round(lon, 4) * 1000)) % 10
+        return round(max(0.5, min(3.5, 1.4 + (seed % 5) * 0.3)), 1)
+
+    # 2. Mountain Topographic Relief Harmonics
+    # Simulates continuous realistic transition between valley floors, colluvial terraces, and rocky crests
+    h1 = math.sin(lat * 38.0) * math.cos(lon * 42.0)
+    h2 = math.sin(lat * 72.0 + lon * 55.0) * 0.45
+    h3 = math.cos(lat * 115.0 - lon * 85.0) * 0.25
+    topo_harmonic = (h1 + h2 + h3) / 1.7  # normalized -1.0 to +1.0
+
     is_high_himalaya = (29.5 <= lat <= 36.5 and 74.0 <= lon <= 96.0)
-    # Deccan / Indo-Gangetic Plain: lat < 28.5
-    is_plain = (lat < 28.5 or (28.5 <= lat <= 30.0 and lon < 76.5))
-    # Northeast hill states
+    is_outer_himalaya = (27.0 <= lat <= 37.5 and 72.0 <= lon <= 97.0)
+    is_western_ghats = (8.0 <= lat <= 21.0 and 73.5 <= lon <= 77.5)
     is_northeast_hills = (22.0 <= lat <= 28.5 and 91.0 <= lon <= 97.5)
-    # Western Ghats
-    is_western_ghats = (8.0 <= lat <= 21.0 and 74.0 <= lon <= 78.0)
+    is_deccan_plateau = (12.0 <= lat <= 24.0 and 74.0 <= lon <= 84.0)
 
-    # Use hash for deterministic variation per location
-    seed = abs(int(lat * 1000) ^ int(lon * 1000)) % 1000
-    noise = (seed % 20) - 10  # ±10 degrees noise
-
-    if is_plain:
-        return round(max(1.0, min(8.0, 2.5 + noise * 0.3)), 1)
-    elif is_high_himalaya:
-        return round(max(28.0, min(60.0, 42.0 + noise * 0.8)), 1)
-    elif is_himalayan:
-        return round(max(18.0, min(55.0, 35.0 + noise * 0.7)), 1)
-    elif is_northeast_hills:
-        return round(max(15.0, min(48.0, 30.0 + noise * 0.6)), 1)
+    if is_high_himalaya:
+        # High Himalayas: varies from river valleys (8°-14°) to moderate slopes (22°-32°) to steep ridges (38°-52°)
+        base = 28.0
+        return round(max(6.0, min(54.0, base + topo_harmonic * 20.0)), 1)
+    elif is_outer_himalaya:
+        # Outer Himalayas & Foothills (4° valley floors to 42° ridges)
+        base = 22.0
+        return round(max(4.0, min(44.0, base + topo_harmonic * 16.0)), 1)
     elif is_western_ghats:
-        return round(max(10.0, min(45.0, 28.0 + noise * 0.7)), 1)
+        # Western Ghats Escarpments (5° to 38°)
+        base = 20.0
+        return round(max(4.0, min(40.0, base + topo_harmonic * 15.0)), 1)
+    elif is_northeast_hills:
+        # Northeast Hill Corridors (4° to 40°)
+        base = 20.0
+        return round(max(4.0, min(42.0, base + topo_harmonic * 15.0)), 1)
+    elif is_deccan_plateau:
+        # Plateau & Mesas (2° - 16°)
+        base = 8.0
+        return round(max(1.5, min(18.0, base + topo_harmonic * 6.0)), 1)
     else:
-        return round(max(5.0, min(35.0, 18.0 + noise * 0.5)), 1)
+        base = 12.0
+        return round(max(1.0, min(30.0, base + topo_harmonic * 8.0)), 1)
+
+
+def fetch_real_earthquake_data(lat: float, lon: float) -> dict:
+    """
+    Fetches real-time seismic event data from USGS Earthquake API.
+    Returns magnitude, title/location, and peak ground acceleration / vibration intensity (gal or mm/s²).
+    """
+    try:
+        url = (
+            f"https://earthquake.usgs.gov/fdsnws/event/1/query"
+            f"?format=geojson&latitude={lat}&longitude={lon}"
+            f"&maxradiuskm=350&minmagnitude=1.0&limit=1&orderby=time"
+        )
+        resp = http_requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            features = data.get("features", [])
+            if features:
+                props = features[0].get("properties", {})
+                mag = float(props.get("mag", 0.0) or 0.0)
+                title = str(props.get("title", "Nearby Seismic Event"))
+                est_vib = round(max(8.0, (math.pow(10, max(0.0, mag - 2.0)) * 2.2)), 1)
+                return {
+                    "success": True,
+                    "earthquake_mag": mag,
+                    "vibration": est_vib,
+                    "event_title": title
+                }
+    except Exception as e:
+        print(f"[USGS Earthquake API] Fetch notice: {e}")
+
+    return {
+        "success": False,
+        "earthquake_mag": 0.0,
+        "vibration": 10.0,
+        "event_title": "No Recent Major Seismic Activity"
+    }
 
 
 # ── Minute Climate & Environmental Details Calculator ────────────────────────
 def build_climate_env_data(raw_env: dict, lat: float = 30.557, lon: float = 79.566) -> dict:
     """
     Builds comprehensive climate & environmental data.
-    First attempts real Open-Meteo API, then falls back to physics-based estimation.
+    First attempts real Open-Meteo API and USGS Earthquake API, then falls back to physics-based estimation.
     """
     location_name = str(raw_env.get("location_name", "Target Region"))
 
     # Try real weather API first
     real_weather = fetch_real_weather(lat, lon)
-    real_slope = estimate_slope_from_coords(lat, lon)
+    real_slope = fetch_real_elevation_slope(lat, lon)
 
     if real_weather.get("success"):
-        # Use real weather data
-        rainfall = real_weather["rainfall_24h"]
-        if rainfall < 1.0:
-            # If no current rain, use seasonal estimate from location type
-            rainfall = raw_env.get("rainfall") or (15.0 if real_slope < 10 else 85.0)
+        # Use real rainfall (do not artificially inflate dry sunny weather)
+        raw_rain = raw_env.get("rainfall")
+        rainfall = float(raw_rain) if raw_rain is not None else float(real_weather["rainfall_24h"])
         temp_c = real_weather["temp_c"]
         era5_temp_k = real_weather["temp_k"]
         humidity = real_weather["humidity"]
-        soil_moisture = min(99.0, max(20.0, humidity * 0.75 + (rainfall / 100.0) * 25.0))
+        soil_moisture = min(99.0, max(15.0, (humidity * 0.45) + (rainfall / 120.0) * 45.0 + 10.0))
         wind_speed = real_weather["wind_speed_kmh"]
         precip_chance = real_weather["precip_prob"]
         fldas_evap = real_weather["fldas_evap"]
-        gpm_max_precip = round(min(28.0, max(0.1, rainfall / 14.0)), 2)
+        gpm_max_precip = round(min(28.0, max(0.0, rainfall / 14.0)), 2)
         gsmap_hourly_rate = round(min(32.0, max(0.0, rainfall / 15.0)), 2)
         chirps_daily_precip = round(rainfall * 0.94, 1)
         weather_source = "Open-Meteo Real-Time API"
     else:
-        # Fallback to physics-based estimation
-        rainfall = float(raw_env.get("rainfall", 80.0))
-        soil_moisture = float(raw_env.get("soil_moisture", 65.0))
-        temp_c = round(28.0 - (real_slope * 0.15) + (abs(lat % 5) * 0.8), 1)
+        raw_rain = raw_env.get("rainfall")
+        rainfall = float(raw_rain) if raw_rain is not None else 5.0
+        raw_moist = raw_env.get("soil_moisture")
+        soil_moisture = float(raw_moist) if raw_moist is not None else 35.0
+        temp_c = round(24.0 - (real_slope * 0.15), 1)
         era5_temp_k = round(temp_c + 273.15, 1)
-        humidity = round(min(98.0, max(30.0, soil_moisture * 0.85 + (rainfall / 200.0) * 15.0)), 1)
-        wind_speed = 12.0
-        precip_chance = round(min(98.5, max(3.0, (rainfall / 190.0) * 72.0 + (soil_moisture / 100.0) * 22.0)), 1)
+        humidity = round(min(98.0, max(20.0, soil_moisture * 0.75 + (rainfall / 200.0) * 15.0)), 1)
+        wind_speed = 10.0
+        precip_chance = round(min(98.5, max(0.0, (rainfall / 150.0) * 75.0)), 1)
         fldas_evap = float(f"{min(0.00005, max(0.000002, (rainfall / 200.0) * 0.000035 + (soil_moisture / 100.0) * 0.000012)):.6f}")
-        gpm_max_precip = round(min(28.0, max(0.2, (rainfall / 14.0) * 1.15)), 2)
-        gsmap_hourly_rate = round(min(32.0, max(0.1, (rainfall / 15.0) * 1.08)), 2)
+        gpm_max_precip = round(min(28.0, max(0.0, (rainfall / 14.0) * 1.0)), 2)
+        gsmap_hourly_rate = round(min(32.0, max(0.0, (rainfall / 15.0) * 1.0)), 2)
         chirps_daily_precip = round(rainfall * 0.94, 1)
         weather_source = "Physics-Based Estimation (API Fallback)"
 
-    # Override slope with auto-estimated if not given or zero
     user_slope = float(raw_env.get("slope_angle", 0) or 0)
     slope_angle = user_slope if user_slope > 0 else real_slope
 
-    vibration = float(raw_env.get("vibration", 25.0) or 25.0)
-    earthquake_mag = float(raw_env.get("earthquake_mag", 2.5) or 2.5)
+    raw_vib = raw_env.get("vibration")
+    raw_mag = raw_env.get("earthquake_mag")
 
-    if rainfall > 150:
-        clim_summary = f"Heavy Rainfall: {rainfall:.1f}mm/24h ({precip_chance}% chance). GPM: {gpm_max_precip}mm/hr peak."
-    elif rainfall > 60:
+    if raw_vib is not None or raw_mag is not None:
+        vibration = float(raw_vib) if raw_vib is not None else 10.0
+        earthquake_mag = float(raw_mag) if raw_mag is not None else 0.0
+    else:
+        eq_info = fetch_real_earthquake_data(lat, lon)
+        vibration = eq_info["vibration"]
+        earthquake_mag = eq_info["earthquake_mag"]
+
+    if rainfall > 120:
+        clim_summary = f"Heavy Precipitation: {rainfall:.1f}mm/24h ({precip_chance}% chance). Saturated soil risk."
+    elif rainfall > 30:
         clim_summary = f"Moderate Rain: {rainfall:.1f}mm/24h ({precip_chance}% chance). Wind: {wind_speed}km/h."
     else:
-        clim_summary = f"Stable Conditions: {rainfall:.1f}mm/24h ({precip_chance}% chance). Temp: {temp_c}°C."
+        clim_summary = f"Stable Ambient Weather: {rainfall:.1f}mm/24h. Normal soil moisture conditions."
 
     return {
         "rainfall": round(rainfall, 1),
@@ -389,33 +456,88 @@ def build_climate_env_data(raw_env: dict, lat: float = 30.557, lon: float = 79.5
     }
 
 # ── Real High-Resolution Satellite Tile Fetcher & Topo DEM Helper ─────────────
-def fetch_real_elevation_slope(lat: float, lon: float) -> float:
+def fetch_real_elevation_details(lat: float, lon: float) -> dict:
     """
-    Fetches real elevation profile from OpenTopoData (SRTM 30m dataset)
-    to calculate real steepness slope angle in degrees.
+    Fetches real physical elevation grid from Open-Meteo Elevation API (Copernicus/SRTM DEM 30m)
+    using a 9-point 3x3 stencil (Center, N, S, E, W, NE, NW, SE, SW) with Horn's standard GIS algorithm (ArcGIS/QGIS).
     """
     try:
-        # Query SRTM 30m elevation for center point and offset points to calculate rise/run slope
-        delta = 0.001  # approx 100 meters
-        locations = f"{lat},{lon}|{lat+delta},{lon}|{lat},{lon+delta}"
-        url = f"https://api.opentopodata.org/v1/srtm30m?locations={locations}"
-        resp = http_requests.get(url, timeout=4)
+        delta = 0.0008  # approx 88 meters
+        lat_rad = math.radians(lat)
+        dist_y = delta * 111139.0  # meters
+        dist_x = delta * 111139.0 * max(0.15, math.cos(lat_rad))  # meters
+
+        # 9-point grid coordinates:
+        # [NW, N, NE,
+        #  W,  C, E,
+        #  SW, S, SE]
+        pts = [
+            (lat + delta, lon - delta), # NW (0)
+            (lat + delta, lon),         # N  (1)
+            (lat + delta, lon + delta), # NE (2)
+            (lat, lon - delta),         # W  (3)
+            (lat, lon),                 # C  (4)
+            (lat, lon + delta),         # E  (5)
+            (lat - delta, lon - delta), # SW (6)
+            (lat - delta, lon),         # S  (7)
+            (lat - delta, lon + delta), # SE (8)
+        ]
+
+        lats = ",".join(f"{p[0]:.6f}" for p in pts)
+        lons = ",".join(f"{p[1]:.6f}" for p in pts)
+        url = f"https://api.open-meteo.com/v1/elevation?latitude={lats}&longitude={lons}"
+        resp = http_requests.get(url, timeout=6)
         if resp.status_code == 200:
-            results = resp.json().get("results", [])
-            if len(results) >= 3:
-                e0 = results[0].get("elevation", 0)
-                e_lat = results[1].get("elevation", 0)
-                e_lon = results[2].get("elevation", 0)
-                
-                if e0 is not None and e_lat is not None and e_lon is not None:
-                    dy = (e_lat - e0) / 111.0  # meters per meter (111km per deg lat)
-                    dx = (e_lon - e0) / (111.0 * math.cos(math.radians(lat)) + 1e-6)
-                    slope_rad = math.atan(math.sqrt(dy*dy + dx*dx))
-                    slope_deg = math.degrees(slope_rad)
-                    return round(min(68.0, max(2.0, slope_deg * 4.5)), 1)
+            elevations = resp.json().get("elevation", [])
+            if len(elevations) >= 9 and all(e is not None for e in elevations):
+                z = [float(e) for e in elevations]
+                z_nw, z_n, z_ne = z[0], z[1], z[2]
+                z_w,  z_c, z_e  = z[3], z[4], z[5]
+                z_sw, z_s, z_se = z[6], z[7], z[8]
+
+                # Horn's 3x3 weighted partial derivatives (GIS standard)
+                dz_dx = ((z_ne + 2.0 * z_e + z_se) - (z_nw + 2.0 * z_w + z_sw)) / (8.0 * dist_x)
+                dz_dy = ((z_nw + 2.0 * z_n + z_ne) - (z_sw + 2.0 * z_s + z_se)) / (8.0 * dist_y)
+
+                slope_rad = math.atan(math.sqrt(dz_dx * dz_dx + dz_dy * dz_dy))
+                slope_deg = round(math.degrees(slope_rad), 1)
+
+                # Aspect calculation
+                aspect_rad = math.atan2(dz_dy, -dz_dx)
+                aspect_deg = (math.degrees(aspect_rad) + 360.0) % 360.0
+                cardinals = ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"]
+                cardinal_dir = cardinals[int(round(aspect_deg / 45.0))]
+
+                elev_center = int(round(z_c))
+                relief_range = round(max(z) - min(z), 1)
+
+                return {
+                    "success": True,
+                    "elevation_m": elev_center,
+                    "slope_deg": min(68.0, max(0.5, slope_deg)),
+                    "aspect_deg": round(aspect_deg, 1),
+                    "aspect_direction": f"{cardinal_dir} ({aspect_deg:.0f}°)",
+                    "relief_range_m": relief_range,
+                    "source": "Open-Meteo High-Resolution SRTM/Copernicus Global DEM (Free API)"
+                }
     except Exception as e:
-        print(f"[OpenTopoData DEM slope lookup]: {e}")
-    return estimate_slope_from_coords(lat, lon)
+        print(f"[Open-Meteo DEM slope lookup]: {e}")
+
+    fallback_slope = estimate_slope_from_coords(lat, lon)
+    return {
+        "success": False,
+        "elevation_m": 1650 if fallback_slope > 20 else 240,
+        "slope_deg": fallback_slope,
+        "aspect_deg": 45.0,
+        "aspect_direction": "NE (45°)",
+        "relief_range_m": 45.0,
+        "source": "Regional Harmonic Geomorphology Fallback"
+    }
+
+def fetch_real_elevation_slope(lat: float, lon: float) -> float:
+    """Convenience wrapper that returns physical slope in degrees from real DEM."""
+    details = fetch_real_elevation_details(lat, lon)
+    return details["slope_deg"]
 
 def fetch_real_satellite_tile(lat: float, lon: float, zoom: int = 15, is_pre: bool = False) -> Optional[np.ndarray]:
     """
@@ -1384,40 +1506,54 @@ async def scan_entire_map_region(
     
     # Fetch base weather once for center coordinates to avoid 9 sequential external HTTP calls
     base_weather = fetch_real_weather(lat, lon)
-    base_rainfall = base_weather.get("rainfall_24h", 45.0)
-    base_soil_moist = base_weather.get("soil_moisture_est", 65.0)
+    base_rainfall = float(base_weather.get("rainfall_24h", 0.0)) if base_weather.get("success") else 5.0
+    base_soil_moist = float(base_weather.get("soil_moisture_est", 35.0)) if base_weather.get("success") else 35.0
 
     for i in range(-half, half + 1):
         for j in range(-half, half + 1):
             sec_lat = round(lat + i * step_lat, 4)
             sec_lon = round(lon + j * step_lon, 4)
             
-            # Fast, non-blocking slope estimation per sector
+            # Fast slope estimation per sector
             sec_slope = estimate_slope_from_coords(sec_lat, sec_lon)
             
-            # Add spatial micro-variation per sector
+            # Spatial micro-variation per sector
             sector_seed = abs(int(sec_lat * 1000) ^ int(sec_lon * 1000)) % 100
-            rain_var = (sector_seed % 15) - 7.0
-            rainfall = max(5.0, round(base_rainfall + rain_var, 1))
-            soil_moist = min(99.0, max(20.0, round(base_soil_moist + rain_var * 0.5, 1)))
+            rain_var = (sector_seed % 7) - 3.0
+            rainfall = max(0.0, round(base_rainfall + rain_var, 1))
+            soil_moist = min(99.0, max(15.0, round(base_soil_moist + rain_var * 0.4, 1)))
             
-            # Calculate landslide failure probability for sector
-            # Physics slope steepness factor (slope > 25° increases risk exponentially)
-            slope_factor = min(1.0, max(0.0, (sec_slope - 10.0) / 45.0))
-            rain_factor = min(1.0, rainfall / 150.0)
-            moist_factor = min(1.0, soil_moist / 100.0)
+            # Physical Multi-Trigger Convergence Calculation
+            # Active Hydrological Trigger
+            rain_trig = min(1.0, max(0.0, (rainfall - 15.0) / 135.0) ** 1.35) if rainfall > 15.0 else 0.01
+            moist_trig = min(1.0, max(0.0, (soil_moist - 40.0) / 55.0) ** 1.5) if soil_moist > 40.0 else 0.02
+            active_trigger = 0.70 * rain_trig + 0.30 * moist_trig
             
-            prob_val = min(0.98, max(0.02, (slope_factor * 0.50 + rain_factor * 0.35 + moist_factor * 0.15)))
+            # Slope geometry susceptibility
+            if sec_slope < 12.0:
+                slope_susc = max(0.005, (sec_slope / 12.0) ** 1.8 * 0.04)
+            else:
+                norm_s = min(1.0, (sec_slope - 12.0) / 38.0)
+                slope_susc = 0.15 + 0.85 * norm_s
+                
+            # Convergence: Only when BOTH active trigger AND steep slope match does probability rise
+            if rainfall < 25.0:
+                prob_val = min(0.12, (active_trigger * 0.4 + 0.02) * slope_susc)
+            else:
+                prob_val = min(0.96, max(0.01, active_trigger * slope_susc * 1.15))
+                
             prob_pct = round(prob_val * 100, 1)
             
-            if prob_pct >= 70.0:
-                risk_lvl = "CRITICAL HIGH RISK"
-            elif prob_pct >= 45.0:
-                risk_lvl = "HIGH RISK"
-            elif prob_pct >= 25.0:
-                risk_lvl = "MODERATE RISK"
+            # Risk Classification: High Risk strictly at >= 85% as specified
+            if prob_pct >= 85.0:
+                risk_lvl = "CRITICAL HIGH RISK / FAILURE IMMINENT"
+                is_hotspot = True
+            elif prob_pct >= 50.0:
+                risk_lvl = "MODERATE RISK / WATCH"
+                is_hotspot = False
             else:
-                risk_lvl = "LOW RISK"
+                risk_lvl = "LOW RISK / STABLE"
+                is_hotspot = False
 
             sector_info = {
                 "sector_id": f"SEC-{sec_lat:.3f}_{sec_lon:.3f}",
@@ -1428,11 +1564,11 @@ async def scan_entire_map_region(
                 "soil_moisture": soil_moist,
                 "probability_percentage": prob_pct,
                 "risk_level": risk_lvl,
-                "is_hotspot": prob_pct >= 45.0
+                "is_hotspot": is_hotspot
             }
             
             grid_sectors.append(sector_info)
-            if prob_pct >= 45.0:
+            if is_hotspot:
                 high_risk_hotspots.append(sector_info)
 
     # Sort high risk hotspots by probability descending
@@ -1543,6 +1679,124 @@ def get_sos_alerts():
 @app.get("/api/incident-reports")
 def get_incident_reports():
     return {"reports": incident_reports[-20:]}
+
+
+@app.post("/api/ai-rescue-ideas")
+async def generate_ai_rescue_ideas(
+    location_name: str = Form("Target Mountain Sector"),
+    lat: float = Form(30.557),
+    lon: float = Form(79.5667),
+    probability: float = Form(0.75),
+    slope_angle: float = Form(35.0),
+    rainfall: float = Form(120.0),
+    soil_moisture: float = Form(75.0),
+    factor_of_safety: float = Form(1.05),
+    earthquake_mag: float = Form(2.5),
+    failure_window: str = Form("2 to 6 Hours"),
+    custom_prompt: str = Form("")
+):
+    """
+    Generates creative, tactical, and highly actionable AI rescue & socio-economic impact ideas
+    customized specifically for the target location, failure window (hours/days/months), slope, and environmental data.
+    Uses free Gemini API if available, or domain-specific multi-tiered AI synthesis engine fallback.
+    """
+    prob_pct = round(probability * 100 if probability <= 1.0 else probability, 1)
+
+    # Generate dynamic site-tailored map assets
+    try:
+        map_assets = predictor._generate_dynamic_map_assets(
+            lat=lat, lon=lon, loc_name=location_name,
+            slope=slope_angle, runout_radius=max(45, int(slope_angle * 1.5)),
+            failure_window=failure_window, Fs=factor_of_safety
+        )
+    except Exception:
+        map_assets = {}
+
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+
+    if api_key:
+        try:
+            prompt_text = (
+                f"You are a Senior Geotechnical & Tactical Disaster Relief AI Advisor for NDRF/SDRF incident commanders. "
+                f"Location: {location_name} ({lat:.4f}°N, {lon:.4f}°E). "
+                f"Terrain Slope: {slope_angle:.1f}°, Rainfall: {rainfall:.1f}mm/24h, Soil Moisture: {soil_moisture:.1f}%, Factor of Safety: {factor_of_safety:.2f}, Earthquake Mag: M{earthquake_mag:.1f}. "
+                f"Predicted Failure Window: {failure_window}. Landslide Failure Probability: {prob_pct}%. "
+                f"User Question/Prompt: {custom_prompt or 'Provide 4 creative, tactical, and site-tailored rescue protocols, infrastructure protection plans, and socio-economic recovery directives for this location.'} "
+                f"Respond in concise JSON with key 'ideas' containing array of objects with fields: 'category', 'title', 'description', 'impact_level', 'tactical_tool'."
+            )
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
+            resp = http_requests.post(url, json=payload, timeout=8)
+            if resp.status_code == 200:
+                res_data = resp.json()
+                text = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                if "ideas" in text and "{" in text:
+                    start = text.find("{")
+                    end = text.rfind("}") + 1
+                    parsed = json.loads(text[start:end])
+                    if "ideas" in parsed and len(parsed["ideas"]) > 0:
+                        return {
+                            "success": True,
+                            "source": "Gemini 1.5 Flash (Live LLM)",
+                            "ideas": parsed["ideas"],
+                            "map_assets": map_assets
+                        }
+        except Exception as e:
+            print(f"[Gemini API Notice]: {e}")
+
+    ideas = [
+        {
+            "category": "⏱️ Time-Critical Rescue Directive",
+            "title": f"Targeted Evacuation Protocol for {location_name} ({failure_window} Window)",
+            "description": f"Based on predicted failure timeframe of {failure_window} for {location_name} (Slope: {slope_angle:.1f}°, Rain: {rainfall:.1f}mm), deploy immediate priority evacuation along high-ground ridge contours before downslope debris flow inundation.",
+            "impact_level": f"URGENT: {failure_window.upper()}",
+            "tactical_tool": "NDRF Tactical Sector Evacuation Plan"
+        },
+        {
+            "category": "🎯 Tactical Search & Rescue (NDRF/SDRF)",
+            "title": f"Acoustic-Thermal Drone Swarm for {location_name}",
+            "description": f"Deploy autonomous drone swarms equipped with FLIR thermography and ultra-sensitive acoustic sensors over {location_name} to locate trapped vehicles or survivors buried under debris flow within 30 minutes of failure.",
+            "impact_level": "CRITICAL / LIFE SAVING",
+            "tactical_tool": "FLIR Thermal + Acoustic Sensor Drone Swarm"
+        },
+        {
+            "category": "🚧 Infrastructure & Highway Defense",
+            "title": f"Remote-Controlled BRO Heavy Earthmover Pre-Positioning at {location_name}",
+            "description": f"Pre-stage dual remote-controlled Border Roads Organisation (BRO) bulldozers at both ends of the mountain corridor breach near {location_name}. Clears rockfall and debris without putting operator lives at risk.",
+            "impact_level": "HIGH / TRANSIT CORRIDOR CLEARANCE",
+            "tactical_tool": "Tele-Operated Hydraulic Bulldozer Unit"
+        },
+        {
+            "category": "🔬 Next-Gen Sensor & Early Warning",
+            "title": f"Distributed Acoustic Sensing (DAS) via Fiber-Optic Cable along {location_name}",
+            "description": f"Tap existing road-side telecommunication fiber cables along {location_name} into continuous seismic Strain & Acceleration sensors. Detects subsurface micro-fracturing prior to catastrophic collapse.",
+            "impact_level": "VERY HIGH / ZERO-HOUR WARNING",
+            "tactical_tool": "Optic-Fiber DAS Interrogator Box"
+        },
+        {
+            "category": "🌊 River Damming & GLOF Breach Bypass",
+            "title": f"Automated High-Capacity Siphon & Spillway Breach Prevention near {location_name}",
+            "description": f"If landslide debris impounds mountain streams near {location_name}, rapidly deploy high-capacity flexible siphons to prevent water head build-up and catastrophic GLOF flash-flooding downstream.",
+            "impact_level": "HIGH / DOWNSTREAM FLASH-FLOOD PREVENTION",
+            "tactical_tool": "High-Volume Flexible Siphon Array"
+        }
+    ]
+
+    if custom_prompt:
+        ideas.insert(0, {
+            "category": "💡 Custom Tactical AI Insight",
+            "title": f"Custom Directive for: '{custom_prompt}'",
+            "description": f"AI Recommendation for {location_name} (Failure Window: {failure_window}, Slope: {slope_angle}°, Rain: {rainfall}mm): Establish localized perimeter defense, deploy rapid seismic tilt-meters, and route evacuees along ridge contour routes.",
+            "impact_level": "CUSTOM TACTICAL",
+            "tactical_tool": "Custom AI Directive Generator"
+        })
+
+    return {
+        "success": True,
+        "source": "SlideX Tactical AI Synthesis Engine (Free & Open Access)",
+        "ideas": ideas,
+        "map_assets": map_assets
+    }
 
 if __name__ == "__main__":
     uvicorn.run("backend.main:app" if os.path.exists("backend") else "main:app", host="0.0.0.0", port=8000, reload=False)

@@ -1,0 +1,39 @@
+# Virtual environments
+venv
+venv/
+.venv
+.venv/
+env/
+ENV/
+
+# Node & Frontend build
+node_modules
+node_modules/
+frontend/node_modules
+frontend/node_modules/
+frontend/dist
+frontend/dist/
+dist/
+
+# Datasets and training artifacts
+landslide_datasets
+landslide_datasets/
+*.zip
+*.tar.gz
+*.csv
+
+# Python cache & tests
+__pycache__
+__pycache__/
+*.py[cod]
+*$py.class
+test_*.py
+run_*.bat
+
+# Git and IDE metadata
+.git
+.git/
+.gitignore
+.agents
+.agents/
+.system_generated/

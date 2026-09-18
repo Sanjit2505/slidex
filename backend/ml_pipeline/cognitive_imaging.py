@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import base64
 import os
+from typing import Optional
 
 def calculate_image_difference(img1_path: str, img2_path: str) -> dict:
     """
@@ -84,11 +85,12 @@ def calculate_image_difference(img1_path: str, img2_path: str) -> dict:
         }
 
 
-def analyze_single_image_slope(img_path: str) -> dict:
+def analyze_single_image_slope(img_path: str, known_slope: Optional[float] = None, is_flat_land: bool = False) -> dict:
     """
     Single-image cognitive imaging method:
     Extracts topographical slope incline, surface roughness, structural fracture lines,
     and drainage scarps from a single satellite or aerial terrain image.
+    Anchors to physical DEM slope when available, and suppresses false gradients on flat urban/plain areas.
     """
     try:
         img = cv2.imread(img_path)
@@ -113,52 +115,59 @@ def analyze_single_image_slope(img_path: str) -> dict:
         morph_grad = cv2.morphologyEx(gray, cv2.MORPH_GRADIENT, kernel)
         combined_grad = cv2.addWeighted(gradient_magnitude.astype(np.float32), 0.7, morph_grad.astype(np.float32), 0.3, 0)
         
-        # Normalize gradient to 0-255 for visual rendering
-        norm_grad = cv2.normalize(combined_grad, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-        
-        # 2. Precision Slope Estimation in Degrees (Validated against DEM & Geotechnical surveys)
-        grad_p90 = float(np.percentile(combined_grad, 90))
-        grad_p98 = float(np.percentile(combined_grad, 98))
-        
-        # Determine if image is urban/flatland by checking spatial variance of macro relief vs micro edge density
-        # High building edge count with low macro gradient spread indicates flat urban land
+        # 2. Precision Slope Estimation
         edges = cv2.Canny(blur, 35, 110)
         fracture_density = round(float(np.count_nonzero(edges)) / float(edges.size), 4)
         
-        # True topographic slope calculation (range 0.0° to 64.0°)
-        raw_slope = (grad_p90 * 0.4 + grad_p98 * 0.6) / 255.0 * 58.0
-        
-        # If low macro relief variance, allow slope to drop to flat levels (0.0° - 10.0°)
-        if grad_p90 < 25.0:
-            estimated_slope_angle = round(max(0.0, raw_slope * 0.3), 1)
+        if is_flat_land or (known_slope is not None and known_slope < 12.0):
+            # Explicit plain/flatland zone
+            estimated_slope_angle = round(max(0.5, min(8.0, float(known_slope if known_slope is not None else 2.0))), 1)
+        elif known_slope is not None and known_slope > 0:
+            # Anchor to physically validated DEM ground truth
+            estimated_slope_angle = round(float(known_slope), 1)
         else:
-            estimated_slope_angle = round(min(64.0, max(2.0, raw_slope)), 1)
+            # Automatic heuristic estimation from optical texture
+            grad_p90 = float(np.percentile(combined_grad, 90))
+            grad_p98 = float(np.percentile(combined_grad, 98))
+            raw_slope = (grad_p90 * 0.4 + grad_p98 * 0.6) / 255.0 * 48.0
+            if grad_p90 < 22.0 or fracture_density < 0.02:
+                estimated_slope_angle = round(max(1.0, min(8.0, raw_slope * 0.3)), 1)
+            else:
+                estimated_slope_angle = round(min(58.0, max(12.0, raw_slope)), 1)
+
+        # 3. Normalize gradient & scale according to actual topographic slope
+        norm_grad = cv2.normalize(combined_grad, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         
-        # 3. High-Frequency Terrain Roughness & Fracture Scarp Detection
+        # If flat plain (<12°), scale down gradient highlights to prevent false alarm on city buildings
+        if estimated_slope_angle < 12.0:
+            suppression_factor = max(0.05, estimated_slope_angle / 35.0)
+            norm_grad = (norm_grad.astype(np.float32) * suppression_factor).astype(np.uint8)
+
+        # 4. High-Frequency Terrain Roughness
         laplacian = cv2.Laplacian(blur, cv2.CV_64F)
         roughness_score = float(np.var(laplacian)) / 900.0
         roughness_index = round(min(1.0, roughness_score / 2.8), 3)
 
-        # 4. Generate Topographic Slope Incline Heatmap (TURBO colormap)
+        # 5. Generate Topographic Slope Incline Heatmap (TURBO colormap)
         slope_heatmap = cv2.applyColorMap(norm_grad, cv2.COLORMAP_TURBO)
         
         # Overlay with original satellite image
-        slope_overlay = cv2.addWeighted(img, 0.52, slope_heatmap, 0.48, 0)
+        slope_overlay = cv2.addWeighted(img, 0.55, slope_heatmap, 0.45, 0)
         
-        # Draw structural fracture contours
-        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(slope_overlay, contours, -1, (0, 255, 255), 1)
+        # Draw structural fracture contours only if slope >= 12°
+        if estimated_slope_angle >= 12.0:
+            contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            cv2.drawContours(slope_overlay, contours, -1, (0, 255, 255), 1)
 
         # High-Accuracy Cognitive Susceptibility Metric:
-        # Strictly gated by slope steepness ratio (if slope < 12°, susceptibility score drops to ~0)
+        # Strictly gated by slope steepness ratio (if slope < 12°, susceptibility score drops to ~0.01)
         if estimated_slope_angle < 12.0:
-            slope_steepness_ratio = max(0.0, (estimated_slope_angle - 2.0) / 45.0) * 0.15
+            cognitive_slope_score = round(max(0.01, min(0.06, (estimated_slope_angle / 12.0) * 0.06)), 3)
         else:
             slope_steepness_ratio = max(0.0, (estimated_slope_angle - 12.0) / 48.0)
-
-        cognitive_slope_score = round(min(0.99, max(0.01, 
-            slope_steepness_ratio * 0.60 + roughness_index * 0.20 + min(1.0, fracture_density * 4.0) * 0.20 * min(1.0, slope_steepness_ratio * 2.0)
-        )), 3)
+            cognitive_slope_score = round(min(0.99, max(0.05, 
+                slope_steepness_ratio * 0.60 + roughness_index * 0.20 + min(1.0, fracture_density * 4.0) * 0.20 * min(1.0, slope_steepness_ratio * 2.0)
+            )), 3)
 
         _, buf_overlay = cv2.imencode('.jpg', slope_overlay)
         overlay_base64 = base64.b64encode(buf_overlay).decode('utf-8')
@@ -179,7 +188,7 @@ def analyze_single_image_slope(img_path: str) -> dict:
         return {
             "success": False,
             "error": str(e),
-            "estimated_slope_angle": 30.0,
+            "estimated_slope_angle": 30.0 if known_slope is None else known_slope,
             "roughness_index": 0.0,
             "fracture_density": 0.0,
             "cognitive_slope_score": 0.0,

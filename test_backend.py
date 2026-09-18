@@ -53,6 +53,9 @@ def main():
     
     test_endpoint("POST", "/api/predict", files={"image_pre": dummy_img, "image_post": dummy_img}, data={"rainfall": "50", "vibration": "10", "earthquake_mag": "2", "slope_angle": "35", "soil_moisture": "60", "location_name": "Test Location"})
 
+    # AI rescue ideas
+    test_endpoint("POST", "/api/ai-rescue-ideas", data={"location_name": "Joshimath", "lat": "30.55", "lon": "79.56", "probability": "0.85", "slope_angle": "42", "rainfall": "180"})
+
     # train
     test_endpoint("POST", "/api/train", data={"dataset_folder": "landslide_datasets"})
 
